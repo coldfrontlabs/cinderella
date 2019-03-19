@@ -1,0 +1,9 @@
+#!/usr/bin/env php
+<?php
+// application.php
+
+require __DIR__.'/vendor/autoload.php';
+
+define("APP_ROOT", dirname(__FILE__));
+
+

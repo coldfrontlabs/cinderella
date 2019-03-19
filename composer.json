@@ -1,0 +1,15 @@
+{
+    "name": "coldfrontlabs/cinderella",
+    "description": "HTTP triggered background job runner",
+    "type": "project",
+    "authors": [
+        {
+            "name": "David Pascoe-Deslauriers",
+            "email": "dpascoed@coldfrontlabs.ca"
+        }
+    ],
+    "require": {
+        "amphp/http-server-router": "^1.0",
+        "symfony/yaml": "^4.2"
+    }
+}
