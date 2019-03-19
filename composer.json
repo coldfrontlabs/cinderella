@@ -10,6 +10,7 @@
     ],
     "require": {
         "amphp/http-server-router": "^1.0",
-        "symfony/yaml": "^4.2"
+        "symfony/yaml": "^4.2",
+        "amphp/log": "^1.0"
     }
 }
