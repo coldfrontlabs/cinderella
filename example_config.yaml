@@ -1,0 +1,11 @@
+endpoint:
+  'curl/sleep':
+    type: http_request
+    option: GET
+    parameters:
+      url: http://csiuo.com/sleep.php
+  'runit/whoami':
+    type: bash
+    parameters:
+      cmd: "sleep 10"
+    
