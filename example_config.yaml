@@ -1,11 +1,15 @@
+listen:
+  - 0.0.0.0:10101
 endpoint:
   'curl/sleep':
     type: http_request
     option: GET
+    concurrency: -1
+    queue: false
     parameters:
       url: http://csiuo.com/sleep.php
   'runit/whoami':
     type: bash
+    concurrency: 2
     parameters:
       cmd: "sleep 10"
-    

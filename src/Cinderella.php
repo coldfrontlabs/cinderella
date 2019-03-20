@@ -33,10 +33,10 @@ class Cinderella {
   }
 
   private function server() {
-    $servers = [
-      Socket\listen("0.0.0.0:1337"),
-      Socket\listen("[::]:1337"),
-    ];
+    $servers = [];
+    foreach ($this->config['listen'] as $l) {
+      $servers[] = Socket\listen($l);
+    }
 
     $router = new Router;
     foreach ($this->config['endpoint'] as $path => $endpoint) {
@@ -54,6 +54,9 @@ class Cinderella {
 
   private function defaultConfig() {
     return [
+      'listen' => [
+        '0.0.0.0:10101',
+      ],
       'endpoint' => [
         'hello-world' => [],
       ],
@@ -69,7 +72,7 @@ class Cinderella {
     $config = $this->config['endpoint'][$path] ?? FALSE;
 
     if (!$config) {
-      return new Response(Status::NOT_FOUND);  
+      return new Response(Status::NOT_FOUND);
     }
 
     switch ($config['type']) {
