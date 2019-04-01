@@ -21,9 +21,12 @@ use Monolog\Logger;
 class Cinderella {
   use CallableMaker;
   private $config;
+  private $promises = [];
+  private $queue = [];
 
   function __construct($config) {
     $this->config = $config + $this->defaultConfig();
+    $this->config['endpoint'] = $config['endpoint'] + $this->defaultConfig()['endpoint'];
     $this->logHandler = new StreamHandler(new ResourceOutputStream(\STDOUT));
     $this->logHandler->setFormatter(new ConsoleFormatter);
     $this->logger = new Logger('server');
@@ -57,8 +60,12 @@ class Cinderella {
       'listen' => [
         '0.0.0.0:10101',
       ],
+      'max_concurrency' => 12,
+      'max_queue' => 12,
       'endpoint' => [
-        'hello-world' => [],
+        'status' => [
+          'type' => 'status',
+        ],
       ],
     ];
   }
@@ -69,35 +76,68 @@ class Cinderella {
     if ($path[0] == '/') {
       $path = substr($path,1);
     }
+
     $config = $this->config['endpoint'][$path] ?? FALSE;
 
     if (!$config) {
       return new Response(Status::NOT_FOUND);
     }
 
+    //TODO: Add resquest queuing here.
+
+    return $this->runRoutine($path);
+  }
+
+  private function http_request($path) {
+    $config = $this->config['endpoint'][$path];
+    $client = new DefaultClient;
+    $promise = $client->request($config['parameters']['url']);
+    $message = $path . ' - Sending HTTP GET to ' . $config['parameters']['url'];
+    return [$message, $promise];
+  }
+
+  private function bash($path) {
+    $config = $this->config['endpoint'][$path];
+    $process = new Process($config['parameters']['cmd']);
+    $promise = $process->start();
+    $message = $path . ' - Executing ' . $config['parameters']['cmd'];
+    $this->logger->notice($message);
+    return [$message, $promise];
+  }
+
+  private function runRoutine($path) {
+    $config = $this->config['endpoint'][$path];
+    $response = NULL;
+    $message = FALSE;
+    $promise = NULL;
+
     switch ($config['type']) {
       case 'http_request':
-        return new Response(Status::OK, ['content-type' => 'text/plain'], $this->http_request($config));
+        list($message, $promise) = $this->http_request($path);
+        break;
 
       case 'bash':
-        return new Response(Status::OK, ['content-type' => 'text/plain'], $this->bash($config));
+        list($message, $promise) = $this->bash($path);
+        break;
+
+      case 'status':
+        $message = print_r($this->promises);
+        break;
     }
+
+    if ($message) {
+      $this->logger->notice($message);
+      return new Response(Status::OK, ['content-type' => 'text/plain'], $message);
+    }
+
+    if ($promise) {
+      $id = uniqid();
+      //$promise->onResolve();
+      //$this->callableFromInstanceMethod('server')
+      //TODO: Set on onresolve to remove promise from list.
+      $this->promises[$path][$id] = $promise;
+    }
+
     return new Response(Status::NOT_IMPLEMENTED);
-  }
-
-  private function http_request($config) {
-    $client = new DefaultClient;
-    $response = $client->request($config['parameters']['url']);
-    $message = 'Sending HTTP GET to ' . $config['parameters']['url'];
-    $this->logger->notice($message);
-    return $message;
-  }
-
-  private function bash($config) {
-    $process = new Process($config['parameters']['cmd']);
-    $process->start();
-    $message = 'Executing ' . $config['parameters']['cmd'];
-    $this->logger->notice($message);
-    return $message;
   }
 }
