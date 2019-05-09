@@ -4,12 +4,12 @@ Cinderella is an easy to configure asynchronous background job running daemon th
 
 ## Why would I use this
 
-PHP web applications don't generally live themselves are resident services, and thus have trouble managing long running background jobs.
-Generally the solution is to use cron, however the restriction becomes that you can't trigger the jobs to run immediately.
+PHP web applications don't generally live as resident services.  Their life time end when the HTTP request is satisfied.  Thus they have trouble managing long running background jobs.
+Generally the solution is to use cron to manage background jobs, however this restricts when the jobs can be triggered, and means that jobs can't be scheduled to run immediately.
 
 Cinderella is a local service for excuting the background jobs.  You signal the job you'd like her to run via HTTP, and then you carry on.
 
-Cinderella stays back at on the server, doing the long running background processes like picking the lentils out of the fireplace, while you app goes to the ball.
+Cinderella stays back at on the server, doing the long running background processes like picking the lentils out of the fireplace, while your app goes to the ball.
 
 ## Getting Started
 
