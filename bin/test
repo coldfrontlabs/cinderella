@@ -1,0 +1,29 @@
+#!/usr/bin/env php
+<?php
+require \dirname(__DIR__) . '/vendor/autoload.php';
+define("APP_ROOT", dirname(__FILE__));
+
+use Amp\Loop;
+
+$diff = 0;
+$count = 0;
+$last = microtime(1);
+
+function tick() {
+  global $diff, $count, $last;
+    $t = microtime(1);
+    $count++;
+    $diff += ($t - $last);
+    $last = $t;
+}
+
+echo "-- before Loop::run()\n";
+
+Loop::run(function() {
+    Loop::repeat($msInterval = 1, "tick");
+    Loop::delay($msDelay = 10000, "Amp\\Loop::stop");
+});
+
+echo "-- after Loop::run()\n";
+
+print $count . "\n" . ($diff/$count);
