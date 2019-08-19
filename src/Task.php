@@ -11,4 +11,8 @@ class Task {
     $this->options = $options;
   }
 
+  public function run() {
+    print "Running {$this->type}\n";
+  }
+
 }

@@ -5,6 +5,7 @@ namespace Cinderella;
 use Cinderella\Task;
 
 class Scheduler {
+  use CallableMaker;
 
   protected $schedule;
 
@@ -25,11 +26,32 @@ class Scheduler {
     $this->schedule[$time][] = $task;
 
     ksort($this->schedule);
+    $this->tick();
   }
 
   public function tick() {
     $now = microtime(1);
-    //foreach ($this->schedule)
+
+    foreach ($this->schedule as $time => $tasks) {
+      if ($now >= $nextTime) {
+        $this->runTasks($nextTime);
+      }
+    }
+
+    ksort($this->schedule);
+    $times = array_keys($this->schedule);
+    $nextRunIn = (float)($times[0] - time()) / 2;
+    Loop::delay($nextRunIn * 1000, $this->callableFromInstanceMethod('tick'));
+  }
+
+  public function runTasks($time) {
+    foreach ($this->schedule[$time] as $key => $task) {
+      $task->run();
+      unset($this->schedule[$time][$key]);
+    }
+    if (empty($this->schedule[$time])) {
+      unset($this->schedule[$time]);
+    }
   }
 
 }
