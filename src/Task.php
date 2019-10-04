@@ -2,17 +2,27 @@
 namespace Cinderella;
 
 
-class Task {
-  public $type;
-  public $options;
+abstract class Task {
+  protected $options;
+  protected $queue;
 
-  public function __construct($type, $options = []) {
-    $this->type = $type;
-    $this->options = $options;
+  public function __construct($options = []) {
+    $this->options = $options + $this->defaults();
+    $this->queue = [];
   }
 
-  public function run() {
-    print "Running {$this->type}\n";
+  public function queue() {
+    $this->cleanup();
+    if ($this->options['concurrency'] > 0 and sizeof($queue)) {}
   }
 
+  protected function defaults() {
+    return [
+      'concurrency' => 0,
+      'queue' => false,
+    ];
+  }
+
+  abstract protected function cleanup();
+  abstract protected function run();
 }

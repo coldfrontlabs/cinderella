@@ -2,6 +2,7 @@
 
 namespace Cinderella;
 
+use Amp\CallableMaker;
 use Cinderella\Task;
 
 class Scheduler {

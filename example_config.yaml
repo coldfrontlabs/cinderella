@@ -13,3 +13,9 @@ endpoint:
     concurrency: 2
     parameters:
       cmd: "sleep 10"
+  'schedule/task1':
+    type: bash
+    schedule: TRUE
+    concurrency: 2
+    parameters:
+      cmd: "date >> /tmp/schedule.log"

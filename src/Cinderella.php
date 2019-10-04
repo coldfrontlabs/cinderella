@@ -22,7 +22,8 @@ class Cinderella {
   use CallableMaker;
   private $config;
   private $promises = [];
-  private $queue = [];
+	private $queue = [];
+	private $scheduler;
 
   function __construct($config) {
     $this->config = $config + $this->defaultConfig();
@@ -31,7 +32,7 @@ class Cinderella {
     $this->logHandler->setFormatter(new ConsoleFormatter);
     $this->logger = new Logger('server');
     $this->logger->pushHandler($this->logHandler);
-
+    $this->scheduler = new Scheduler();
     Loop::run($this->callableFromInstanceMethod('server'));
   }
 
@@ -90,7 +91,7 @@ class Cinderella {
 
   private function http_request($path) {
     $config = $this->config['endpoint'][$path];
-    $client = new DefaultClient;
+    $client = new DefaultClient();
     $promise = $client->request($config['parameters']['url']);
     $message = $path . ' - Sending HTTP GET to ' . $config['parameters']['url'];
     return [$message, $promise];
