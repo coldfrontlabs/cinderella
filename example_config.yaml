@@ -1,9 +1,14 @@
 listen:
   - 0.0.0.0:10101
 endpoint:
+  'task':
+    type: task_runner
+    concurrency: -1
+    queue: false
+    authenticaton: signature
   'curl/sleep':
     type: http_request
-    option: GET
+    method: GET
     concurrency: -1
     queue: false
     parameters:
@@ -13,3 +18,8 @@ endpoint:
     concurrency: 2
     parameters:
       cmd: "sleep 10"
+schedule:
+  testschedule:
+    url: "file://example_schedule.json"
+trust:
+  cert_dir: "certs"

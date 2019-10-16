@@ -12,7 +12,16 @@ class Task {
   }
 
   public function run() {
-    print "Running {$this->type}\n";
+    $message = "Running {$this->type}\n";
+    print $message;
+    return [$message, NULL];
   }
 
+  public static function Factory($task) {
+    switch ($task['type']) {
+      case TaskType::None:
+      default:
+        return new Task(TaskType::None, $task);
+    }
+  }
 }

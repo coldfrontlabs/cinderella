@@ -2,22 +2,74 @@
 
 namespace Cinderella;
 
-use Cinderella\Task;
+use Amp\CallableMaker;
+use Amp\Loop;
 
 class Scheduler {
   use CallableMaker;
 
   protected $schedule;
+  protected $scheduledTasksIds;
+  protected $remoteSchedules;
+  protected $logger;
 
-  public function __construct() {
+  /**
+   * Scheduler module's contructor.
+   */
+  public function __construct($logger) {
     $this->schedule = [];
+    $this->remoteSchedules = [];
+    $this->scheduledTasksIds = [];
+    $this->logger = $logger;
   }
 
-  public function scheduleTask($time, Task $task) {
-    $now = microtime(1);
-    if ($time < $now) {
-      throw new Exception('Time given is already past');
+  /**
+   * Register a remote schedule.
+   */
+  public function register($name, $schedule) {
+    $this->remoteSchedules[$name] = $schedule;
+    $this->remoteSchedules[$name]['last_updated'] = 0;
+    $this->refresh($name);
+  }
+
+  /**
+   * Load remote schedule.
+   */
+  public function refresh($name = null) {
+    if (!isset($name)) {
+      foreach (array_keys($this->remoteSchedules) as $name) {
+        $this->refresh($name);
+      }
+      return;
     }
+    $this->logger->debug("Scheduler: refreshing $name");
+    $tasks = file_get_contents($this->remoteSchedules[$name]['url']);
+    if (!$tasks) {
+      return;
+    }
+    $tasks = json_decode($tasks, TRUE);
+    $this->remoteSchedules[$name]['last_updated'] = microtime(1);
+
+    foreach ($tasks as $task) {
+      $id = $name . ':' . $task['id'];
+      $tasktime = $task['time'];
+      $task = Task::Factory($task['task']);
+
+      $this->scheduleTask($id, $tasktime, $task);
+    }
+
+  }
+
+  public function scheduleTask($id, $time, Task $task) {
+    $this->logger->debug("Scheduler: scheduling $id as $time");
+    static $i = 10;
+    if (isset($this->scheduledTaskIds[$id])) {
+      return;
+    }
+    $this->scheduledTaskIds[$id] = $id;
+
+    $now = microtime(1);
+    $time = $now + $i++;
 
     if (!isset($this->schedule[$time])) {
       $this->schedule[$time] = [];
@@ -31,16 +83,29 @@ class Scheduler {
 
   public function tick() {
     $now = microtime(1);
+    $this->logger->debug("Scheduler: checking schedule at $now");
 
-    foreach ($this->schedule as $time => $tasks) {
-      if ($now >= $nextTime) {
-        $this->runTasks($nextTime);
+    foreach (array_keys($this->schedule) as $time) {
+      if ($now >= $time) {
+        $this->logger->debug("Scheduler: Running tasks scheduled for $time at $now");
+        $this->runTasks($time);
       }
     }
 
     ksort($this->schedule);
     $times = array_keys($this->schedule);
+    if (empty($times)) {
+      return;
+    }
     $nextRunIn = (float)($times[0] - time()) / 2;
+    if ($nextRunIn < 2) {
+      $nextRunIn /= 10;
+    } elseif ($nextRunIn < 5) {
+      $nextRunIn /= 4;
+    }
+
+    $this->logger->debug("Scheduler: Next scheduled event is at $times[0] - checking back in at $nextRunIn");
+
     Loop::delay($nextRunIn * 1000, $this->callableFromInstanceMethod('tick'));
   }
 
