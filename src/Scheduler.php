@@ -60,16 +60,19 @@ class Scheduler {
 
   }
 
+  /**
+   * Schedule a single task.
+   */
   public function scheduleTask($id, $time, Task $task) {
-    $this->logger->debug("Scheduler: scheduling $id as $time");
-    static $i = 10;
+    $this->logger->debug("Scheduler: scheduling $id at $time");
+
+    // Don't load duplicate tasks.
     if (isset($this->scheduledTaskIds[$id])) {
+      $this->logger->warning("Scheduler: rejected scheduling tasks $id at $time as it is already scheduled (or recently run)");
       return;
     }
-    $this->scheduledTaskIds[$id] = $id;
 
-    $now = microtime(1);
-    $time = $now + $i++;
+    $this->scheduledTaskIds[$id] = $id;
 
     if (!isset($this->schedule[$time])) {
       $this->schedule[$time] = [];
@@ -78,9 +81,12 @@ class Scheduler {
     $this->schedule[$time][] = $task;
 
     ksort($this->schedule);
-    $this->tick();
+    $this->tick(); // This can't go here, it schedules too much.
   }
 
+  /**
+   * Check whether any tasks should be run and set a recheck time.
+   */
   public function tick() {
     $now = microtime(1);
     $this->logger->debug("Scheduler: checking schedule at $now");
@@ -98,17 +104,22 @@ class Scheduler {
       return;
     }
     $nextRunIn = (float)($times[0] - time()) / 2;
-    if ($nextRunIn < 2) {
+    if ($nextRunIn < 0.5) {
+      $nextRunIn /= 100;
+    } elseif ($nextRunIn < 2) {
       $nextRunIn /= 10;
     } elseif ($nextRunIn < 5) {
       $nextRunIn /= 4;
     }
 
-    $this->logger->debug("Scheduler: Next scheduled event is at $times[0] - checking back in at $nextRunIn");
+    $this->logger->debug("Scheduler: Next scheduled event is at $times[0] - checking back in $nextRunIn seconds");
 
     Loop::delay($nextRunIn * 1000, $this->callableFromInstanceMethod('tick'));
   }
 
+  /**
+   * Run the specific tasks at a specified time.
+   */
   public function runTasks($time) {
     foreach ($this->schedule[$time] as $key => $task) {
       $task->run();
