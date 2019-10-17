@@ -4,6 +4,8 @@ namespace Cinderella;
 
 use Amp\CallableMaker;
 use Amp\Loop;
+use Cinderella\Task\Task;
+use Cinderella\Task\TaskType;
 
 class Scheduler {
   use CallableMaker;
@@ -12,15 +14,17 @@ class Scheduler {
   protected $scheduledTasksIds;
   protected $remoteSchedules;
   protected $logger;
+  protected $cinderella;
 
   /**
    * Scheduler module's contructor.
    */
-  public function __construct($logger) {
+  public function __construct($logger, $cinderella) {
     $this->schedule = [];
     $this->remoteSchedules = [];
     $this->scheduledTasksIds = [];
     $this->logger = $logger;
+    $this->cinderella = $cinderella;
   }
 
   /**
@@ -52,8 +56,9 @@ class Scheduler {
 
     foreach ($tasks as $task) {
       $id = $name . ':' . $task['id'];
-      $tasktime = $task['time'];
-      $task = Task::Factory($task['task']);
+      //$tasktime = $task['time'];
+      $tasktime = time() + rand(10,45);
+      $task = Task::Factory($task['task'], $this->cinderella);
 
       $this->scheduleTask($id, $tasktime, $task);
     }
@@ -87,7 +92,14 @@ class Scheduler {
   /**
    * Check whether any tasks should be run and set a recheck time.
    */
-  public function tick() {
+  public function tick($watcherId = NULL) {
+    static $nextCheckIn = FALSE;
+    static $nextCheckInId = NULL;
+
+    if ($watcherId == $nextCheckInId) {
+      $nextCheckInId = NULL;
+    }
+
     $now = microtime(1);
     $this->logger->debug("Scheduler: checking schedule at $now");
 
@@ -95,12 +107,17 @@ class Scheduler {
       if ($now >= $time) {
         $this->logger->debug("Scheduler: Running tasks scheduled for $time at $now");
         $this->runTasks($time);
+        $nextCheckIn = FALSE;
+        $nextCheckInId = NULL;
       }
     }
 
     ksort($this->schedule);
     $times = array_keys($this->schedule);
     if (empty($times)) {
+      $nextCheckIn = FALSE;
+      $nextCheckInId = NULL;
+      $this->logger->debug("Scheduler: queue empty, no check-ins scheduled");
       return;
     }
     $nextRunIn = (float)($times[0] - time()) / 2;
@@ -112,9 +129,16 @@ class Scheduler {
       $nextRunIn /= 4;
     }
 
-    $this->logger->debug("Scheduler: Next scheduled event is at $times[0] - checking back in $nextRunIn seconds");
-
-    Loop::delay($nextRunIn * 1000, $this->callableFromInstanceMethod('tick'));
+    if (!$nextCheckInId or !$nextCheckIn or $nextCheckIn < $nextRunIn - $now) {
+      $this->logger->debug("Scheduler: Next scheduled event is at $times[0] - checking back in $nextRunIn seconds");
+      $nextCheckIn = (int)$now + $nextRunIn;
+      if ($nextCheckInId) {
+        Loop::cancel($nextCheckInId);
+      }
+      $nextCheckInId = Loop::delay($nextRunIn * 1000, $this->callableFromInstanceMethod('tick'));
+    } else {
+      $this->logger->debug("Scheduler: Wanted to schedule a check in in $nextRunIn seconds, but the next it scheduled for " . (string)($nextCheckIn - $now));
+    }
   }
 
   /**
@@ -122,7 +146,7 @@ class Scheduler {
    */
   public function runTasks($time) {
     foreach ($this->schedule[$time] as $key => $task) {
-      $task->run();
+      $this->cinderella->run($task,':scheduler:');
       unset($this->schedule[$time][$key]);
     }
     if (empty($this->schedule[$time])) {

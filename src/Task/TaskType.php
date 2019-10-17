@@ -1,5 +1,5 @@
 <?php
-namespace Cinderella;
+namespace Cinderella\Task;
 
 class TaskType {
     const None = 'none';

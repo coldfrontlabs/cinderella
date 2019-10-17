@@ -1,12 +1,11 @@
 <?php
 
-use Amp\Process\Process;
-use Cinderella\TaskResult;
-
 namespace Cinderella\Task;
 
-class Bash {
-  protected function run() {
+use Amp\Process\Process;
+
+class Bash extends Task {
+  public function run() {
     $process = new Process($this->options['parameters']['cmd']);
     $promise = $process->start();
     $message = $path . ' - Executing ' . $this->options['parameters']['cmd'];

@@ -16,6 +16,8 @@ use Amp\Log\StreamHandler;
 use Amp\Loop;
 use Amp\Process\Process;
 use Amp\Socket;
+use Cinderella\Task\Task;
+use Cinderella\Task\TaskType;
 use Monolog\Logger;
 
 class Cinderella {
@@ -35,7 +37,7 @@ class Cinderella {
     $this->logger->pushHandler($this->logHandler);
 
     if (isset($config['schedule'])) {
-      $this->scheduler = new Scheduler($this->logger);
+      $this->scheduler = new Scheduler($this->logger, $this);
       foreach ($config['schedule'] as $name => $schedule) {
         $this->scheduler->register($name, $schedule);
         $this->logger->debug("Registering schedule $name: {$schedule['url']}");
@@ -108,15 +110,23 @@ class Cinderella {
   }
 
   private function runRoutine($path) {
+    if (!isset($this->config['endpoint'][$path])) {
+      return new Response(Status::NOT_FOUND);
+    }
     $config = $this->config['endpoint'][$path];
-    $task = Task::Factory($config);
-    $response = NULL;
-    $message = FALSE;
-    $promise = NULL;
+    $task = Task::Factory($config, $this);
 
-    list($message, $promise) = $task->run();
+    if ($message = $this->run($task, $path)) {
+      return new Response(Status::OK, ['content-type' => 'text/plain'], $message);
+    }
 
-    if ($promise) {
+    return new Response(Status::NOT_IMPLEMENTED);
+  }
+
+  public function run(Task $task, $path) {
+    $result = $task->run();
+
+    if ($promise = $result->getPromise()) {
       $id = uniqid();
       //$promise->onResolve();
       //$this->callableFromInstanceMethod('server')
@@ -124,11 +134,28 @@ class Cinderella {
       $this->promises[$path][$id] = $promise;
     }
 
-    if ($message) {
+    if ($message = $result->getMessage()) {
       $this->logger->notice($message);
-      return new Response(Status::OK, ['content-type' => 'text/plain'], $message);
+      return $message;
     }
+    return FALSE;
+  }
 
-    return new Response(Status::NOT_IMPLEMENTED);
+  public function refreshScheduler() {
+    return $this->scheduler->refresh();
+  }
+
+  public function scheduleTask($array) {
+    $id = 'unnamed:' . $array['id'];
+    $tasktime = $task['time'];
+    $tasktime = time() + rand(10,45);
+    $task = Task::Factory($task['task'], $this->cinderella);
+    return $this->scheduler->scheduleTask($id, $time, $task);
+  }
+
+  public function getStatus() {
+    return [
+      'promises' => $this->promises,
+    ];
   }
 }
