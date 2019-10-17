@@ -22,17 +22,26 @@ class Cinderella {
   use CallableMaker;
   private $config;
   private $promises = [];
-	private $queue = [];
-	private $scheduler;
+  private $queue = [];
+  private $scheduler;
 
   function __construct($config) {
     $this->config = $config + $this->defaultConfig();
     $this->config['endpoint'] = $config['endpoint'] + $this->defaultConfig()['endpoint'];
+
     $this->logHandler = new StreamHandler(new ResourceOutputStream(\STDOUT));
     $this->logHandler->setFormatter(new ConsoleFormatter);
     $this->logger = new Logger('server');
     $this->logger->pushHandler($this->logHandler);
-    $this->scheduler = new Scheduler();
+
+    if (isset($config['schedule'])) {
+      $this->scheduler = new Scheduler($this->logger);
+      foreach ($config['schedule'] as $name => $schedule) {
+        $this->scheduler->register($name, $schedule);
+        $this->logger->debug("Registering schedule $name: {$schedule['url']}");
+      }
+    }
+
     Loop::run($this->callableFromInstanceMethod('server'));
   }
 
@@ -44,7 +53,9 @@ class Cinderella {
 
     $router = new Router;
     foreach ($this->config['endpoint'] as $path => $endpoint) {
-      $router->addRoute($endpoint['option'] ?? 'GET', $path, new CallableRequestHandler($this->callableFromInstanceMethod('handle')));
+      $method = $endpoint['method'] ?? 'GET';
+      $router->addRoute($method, $path, new CallableRequestHandler($this->callableFromInstanceMethod('handle')));
+      $this->logger->debug("Adding route $path:$method");
     }
 
     $server = new Server($servers, $router, $this->logger);
@@ -56,7 +67,7 @@ class Cinderella {
     });
   }
 
-  private function defaultConfig() {
+  public static function defaultConfig() {
     return [
       'listen' => [
         '0.0.0.0:10101',
@@ -65,8 +76,15 @@ class Cinderella {
       'max_queue' => 12,
       'endpoint' => [
         'status' => [
-          'type' => 'status',
+          'type' => TaskType::Status,
         ],
+        'schedule-refresh' => [
+          'type' => TaskType::ScheduleRefresh,
+        ],
+        'task' => [
+          'type' => TaskType::TaskRunner,
+          'method' => 'POST',
+        ]
       ],
     ];
   }
@@ -89,47 +107,14 @@ class Cinderella {
     return $this->runRoutine($path);
   }
 
-  private function http_request($path) {
-    $config = $this->config['endpoint'][$path];
-    $client = new DefaultClient();
-    $promise = $client->request($config['parameters']['url']);
-    $message = $path . ' - Sending HTTP GET to ' . $config['parameters']['url'];
-    return [$message, $promise];
-  }
-
-  private function bash($path) {
-    $config = $this->config['endpoint'][$path];
-    $process = new Process($config['parameters']['cmd']);
-    $promise = $process->start();
-    $message = $path . ' - Executing ' . $config['parameters']['cmd'];
-    $this->logger->notice($message);
-    return [$message, $promise];
-  }
-
   private function runRoutine($path) {
     $config = $this->config['endpoint'][$path];
+    $task = Task::Factory($config);
     $response = NULL;
     $message = FALSE;
     $promise = NULL;
 
-    switch ($config['type']) {
-      case 'http_request':
-        list($message, $promise) = $this->http_request($path);
-        break;
-
-      case 'bash':
-        list($message, $promise) = $this->bash($path);
-        break;
-
-      case 'status':
-        $message = print_r($this->promises);
-        break;
-    }
-
-    if ($message) {
-      $this->logger->notice($message);
-      return new Response(Status::OK, ['content-type' => 'text/plain'], $message);
-    }
+    list($message, $promise) = $task->run();
 
     if ($promise) {
       $id = uniqid();
@@ -137,6 +122,11 @@ class Cinderella {
       //$this->callableFromInstanceMethod('server')
       //TODO: Set on onresolve to remove promise from list.
       $this->promises[$path][$id] = $promise;
+    }
+
+    if ($message) {
+      $this->logger->notice($message);
+      return new Response(Status::OK, ['content-type' => 'text/plain'], $message);
     }
 
     return new Response(Status::NOT_IMPLEMENTED);
