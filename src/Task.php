@@ -7,7 +7,7 @@ class Task {
   protected $queue;
   protected $type;
 
-  public function __construct($options = []) {
+  public function __construct($type, $options = []) {
     $this->options = $options + $this->defaults();
     $this->queue = [];
     $this->type = TaskType::None;
