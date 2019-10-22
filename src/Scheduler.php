@@ -54,22 +54,20 @@ class Scheduler {
     $tasks = json_decode($tasks, TRUE);
     $this->remoteSchedules[$name]['last_updated'] = microtime(1);
 
-    foreach ($tasks as $task) {
-      $id = $name . ':' . $task['id'];
-      //$tasktime = $task['time'];
-      $tasktime = time() + rand(10,45);
-      $task = Task::Factory($task['task'], $this->cinderella);
-
-      $this->scheduleTask($id, $tasktime, $task);
+    foreach ($tasks as $taskdata) {
+      $taskdata['time'] = time() + rand(1,10);
+      $taskdata['id'] = uniqid();
+      $task = Task::Factory($taskdata['task'], $this->cinderella);
+      $this->scheduleTask($taskdata['id'], $taskdata['time'], $task);
     }
-
   }
 
   /**
    * Schedule a single task.
    */
   public function scheduleTask($id, $time, Task $task) {
-    $this->logger->debug("Scheduler: scheduling $id at $time");
+    $diff = $time - time();
+    $this->logger->info("Scheduler: scheduling $id at $time (in $diff seconds");
 
     // Don't load duplicate tasks.
     if (isset($this->scheduledTaskIds[$id])) {
@@ -86,14 +84,14 @@ class Scheduler {
     $this->schedule[$time][] = $task;
 
     ksort($this->schedule);
-    $this->tick(); // This can't go here, it schedules too much.
+    $this->tick();
   }
 
   /**
    * Check whether any tasks should be run and set a recheck time.
    */
   public function tick($watcherId = NULL) {
-    static $nextCheckIn = FALSE;
+    static $nextCheckIn = NULL;
     static $nextCheckInId = NULL;
 
     if ($watcherId == $nextCheckInId) {
@@ -105,9 +103,10 @@ class Scheduler {
 
     foreach (array_keys($this->schedule) as $time) {
       if ($now >= $time) {
-        $this->logger->debug("Scheduler: Running tasks scheduled for $time at $now");
+        $diff = $now - $time;
+        $this->logger->info("Scheduler: Running tasks scheduled for $time at $now ($diff seconds late)");
         $this->runTasks($time);
-        $nextCheckIn = FALSE;
+        $nextCheckIn = NULL;
         $nextCheckInId = NULL;
       }
     }
@@ -115,25 +114,27 @@ class Scheduler {
     ksort($this->schedule);
     $times = array_keys($this->schedule);
     if (empty($times)) {
-      $nextCheckIn = FALSE;
+      $nextCheckIn = NULL;
       $nextCheckInId = NULL;
-      $this->logger->debug("Scheduler: queue empty, no check-ins scheduled");
+      $this->logger->info("Scheduler: queue empty, no check-ins scheduled");
       return;
     }
     $nextRunIn = (float)($times[0] - time()) / 2;
+
     if ($nextRunIn < 0.5) {
-      $nextRunIn /= 100;
+      $nextRunIn /= 500;
     } elseif ($nextRunIn < 2) {
       $nextRunIn /= 10;
     } elseif ($nextRunIn < 5) {
       $nextRunIn /= 4;
     }
 
-    if (!$nextCheckInId or !$nextCheckIn or $nextCheckIn < $nextRunIn - $now) {
+    if (!isset($nextCheckInId) or !isset($nextCheckIn) or $nextCheckIn > $nextRunIn + $now) {
       $this->logger->debug("Scheduler: Next scheduled event is at $times[0] - checking back in $nextRunIn seconds");
       $nextCheckIn = (int)$now + $nextRunIn;
       if ($nextCheckInId) {
         Loop::cancel($nextCheckInId);
+        $this->logger->debug("Scheduler: Cancelling check-in at $nextRunIn");
       }
       $nextCheckInId = Loop::delay($nextRunIn * 1000, $this->callableFromInstanceMethod('tick'));
     } else {

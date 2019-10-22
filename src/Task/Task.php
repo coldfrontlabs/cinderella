@@ -5,16 +5,22 @@ namespace Cinderella\Task;
 use Cinderella\Cinderella;
 
 class Task {
+  protected $id;
   protected $options;
   protected $queue;
   protected $type;
   protected $cinderella;
 
   public function __construct($type, $options = [], Cinderella $cinderella) {
+    $this->id = uniqid();
     $this->options = $options + $this->defaults();
     $this->queue = [];
     $this->type = $type;
     $this->cinderella = $cinderella;
+  }
+
+  public function getId() {
+    return $this->id;
   }
 
   public function queue() {

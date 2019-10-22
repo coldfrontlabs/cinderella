@@ -18,7 +18,16 @@ class HttpRequest extends Task {
       }
     }
 
+    $id = $this->getId();
     $promise = $client->request($this->options['url']);
+    $promise->onResolve(function ($error = null, $result = null) use ($id) {
+      print "Resolved $id . . . ";
+      if ($error) {
+        print "Something went wrong\n";
+      } else {
+        print "Hurray! Our result is:\n";
+      }
+    });
     $message = 'Task: Sending HTTP Request to ' . $this->options['url'];
     return new TaskResult($message, $promise);
   }

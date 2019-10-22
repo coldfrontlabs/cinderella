@@ -3,8 +3,8 @@
 namespace Cinderella;
 
 use Amp\Artax\DefaultClient;
-use Amp\ByteStream\ResourceOutputStream;
 use Amp\CallableMaker;
+use Amp\Http\Client\HttpException;
 use Amp\Http\Server\Request;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Response;
@@ -19,6 +19,7 @@ use Amp\Socket;
 use Cinderella\Task\Task;
 use Cinderella\Task\TaskType;
 use Monolog\Logger;
+use Psr\Log\LogLevel;
 
 class Cinderella {
   use CallableMaker;
@@ -27,14 +28,10 @@ class Cinderella {
   private $queue = [];
   private $scheduler;
 
-  function __construct($config) {
+  function __construct($config, $logger) {
     $this->config = $config + $this->defaultConfig();
     $this->config['endpoint'] = $config['endpoint'] + $this->defaultConfig()['endpoint'];
-
-    $this->logHandler = new StreamHandler(new ResourceOutputStream(\STDOUT));
-    $this->logHandler->setFormatter(new ConsoleFormatter);
-    $this->logger = new Logger('server');
-    $this->logger->pushHandler($this->logHandler);
+    $this->logger = $logger;
 
     if (isset($config['schedule'])) {
       $this->scheduler = new Scheduler($this->logger, $this);
@@ -127,11 +124,16 @@ class Cinderella {
     $result = $task->run();
 
     if ($promise = $result->getPromise()) {
-      $id = uniqid();
+
       //$promise->onResolve();
       //$this->callableFromInstanceMethod('server')
       //TODO: Set on onresolve to remove promise from list.
-      $this->promises[$path][$id] = $promise;
+      $this->promises[$path][$task->getId()] = $promise;
+    }
+    try {
+      Loop::defer($this->callableFromInstanceMethod('resolve'));
+    } finally {
+
     }
 
     if ($message = $result->getMessage()) {
@@ -157,5 +159,29 @@ class Cinderella {
     return [
       'promises' => $this->promises,
     ];
+  }
+
+  public function resolve() {
+    foreach ($this->promises as $group => $promises) {
+      foreach ($promises as $id => $promise) {
+        $this->pending[$group][$id] = $promise;
+        unset($this->promises[$group][$id]);
+        $logger = $this->logger;
+        $results = Loop::Run(function () use ($promise, $id, $group, $logger) {
+          $logger->notice("Yielding promise $id");
+          yield $promise;
+        });
+      }
+    }
+
+    foreach ($this->promises as $group => $promises) {
+      if (empty($this->promises)) {
+        unset($this->promises[$group]);
+      }
+    }
+
+    if (!empty($this->promises)) {
+      Loop::defer($this->callableFromInstanceMethod('resolve'));
+    }
   }
 }
