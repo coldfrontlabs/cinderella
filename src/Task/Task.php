@@ -11,16 +11,21 @@ class Task {
   protected $type;
   protected $cinderella;
 
-  public function __construct($type, $options = [], Cinderella $cinderella) {
+  public function __construct($type, $options = [], Cinderella $cinderella, $arguments = FALSE) {
     $this->id = uniqid();
     $this->options = $options + $this->defaults();
     $this->queue = [];
     $this->type = $type;
     $this->cinderella = $cinderella;
+    $this->processArguments($arguments);
+  }
+
+  public function processArguments($arguments) {
+    return;
   }
 
   public function getId() {
-    return $this->id;
+    return $this->id . '-' . $this->type;
   }
 
   public function queue() {
@@ -44,20 +49,23 @@ class Task {
     return new TaskResult($message, NULL);
   }
 
-  public static function Factory($task, Cinderella $cinderella) {
+  public static function Factory($task, Cinderella $cinderella, $arguments = FALSE) {
     switch ($task['type']) {
+      case TaskType::TaskRunner:
+        return new TaskRunner(TaskType::TaskRunner, $task, $cinderella, $arguments);
+
       case TaskType::ScheduleRefresh:
-        return new ScheduleRefresh(TaskType::ScheduleRefresh, $task, $cinderella);
+        return new ScheduleRefresh(TaskType::ScheduleRefresh, $task, $cinderella, $arguments);
 
       case TaskType::HttpRequest:
-        return new HttpRequest(TaskType::ScheduleRefresh, $task, $cinderella);
+        return new HttpRequest(TaskType::HttpRequest, $task, $cinderella, $arguments);
 
       case TaskType::Status:
-        return new Status(TaskType::Status, $task, $cinderella);
+        return new Status(TaskType::Status, $task, $cinderella, $arguments);
 
       case TaskType::None:
       default:
-        return new Task(TaskType::None, $task, $cinderella);
+        return new Task(TaskType::None, $task, $cinderella, $arguments);
     }
   }
 }

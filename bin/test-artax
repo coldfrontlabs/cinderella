@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+
+putenv('HTTP_PROXY');
+putenv('http_proxy');
+putenv('HTTPS_PROXY');
+putenv('https_proxy');
+
+require \dirname(__DIR__) . '/vendor/autoload.php';
+define("APP_ROOT", dirname(__FILE__));
+
+$children = [];
+
+  $urls = [
+    'http://localhost:9000/',
+    'http://localhost:9000/',
+    'http://localhost:9000/',
+  ];
+  foreach ($urls as $url) {
+    $pid = pcntl_fork();
+    if ($pid == -1) {
+      die('could not fork');
+     } else if ($pid) {
+       print "Forked $pid\n";
+       $children[] = $pid;
+    } else {
+      print "Requesting\n";
+      file_get_contents($url);
+      exit;
+    }
+
+  }
+
+  foreach ($children as $child) {
+    pcntl_waitpid($child, $status);
+  }

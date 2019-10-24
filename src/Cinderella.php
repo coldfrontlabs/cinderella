@@ -25,6 +25,7 @@ class Cinderella {
   use CallableMaker;
   private $config;
   private $promises = [];
+  private $pending = [];
   private $queue = [];
   private $scheduler;
 
@@ -32,9 +33,9 @@ class Cinderella {
     $this->config = $config + $this->defaultConfig();
     $this->config['endpoint'] = $config['endpoint'] + $this->defaultConfig()['endpoint'];
     $this->logger = $logger;
+    $this->scheduler = new Scheduler($this->logger, $this);
 
     if (isset($config['schedule'])) {
-      $this->scheduler = new Scheduler($this->logger, $this);
       foreach ($config['schedule'] as $name => $schedule) {
         $this->scheduler->register($name, $schedule);
         $this->logger->debug("Registering schedule $name: {$schedule['url']}");
@@ -101,17 +102,25 @@ class Cinderella {
       return new Response(Status::NOT_FOUND);
     }
 
-    //TODO: Add resquest queuing here.
+    //TODO: Add request queuing here.
 
-    return $this->runRoutine($path);
+    return $this->runRoutine($path, $request);
   }
 
-  private function runRoutine($path) {
+  private function runRoutine($path, $request) {
     if (!isset($this->config['endpoint'][$path])) {
       return new Response(Status::NOT_FOUND);
     }
     $config = $this->config['endpoint'][$path];
-    $task = Task::Factory($config, $this);
+
+    $inputStream = $request->getBody();
+    $buffer = "";
+    while (($chunk = yield $inputStream->read()) !== null) {
+      $buffer .= $chunk;
+    }
+    $body = json_decode($buffer, TRUE);
+
+    $task = Task::Factory($config, $this, $body);
 
     if ($message = $this->run($task, $path)) {
       return new Response(Status::OK, ['content-type' => 'text/plain'], $message);
@@ -124,10 +133,6 @@ class Cinderella {
     $result = $task->run();
 
     if ($promise = $result->getPromise()) {
-
-      //$promise->onResolve();
-      //$this->callableFromInstanceMethod('server')
-      //TODO: Set on onresolve to remove promise from list.
       $this->promises[$path][$task->getId()] = $promise;
     }
     try {
@@ -157,21 +162,40 @@ class Cinderella {
 
   public function getStatus() {
     return [
-      'promises' => $this->promises,
+      'promises' => array_map('array_keys', $this->promises),
+      'pending' => array_map('array_keys', $this->pending),
+      'schedule' => $this->scheduler->getStatus(),
     ];
   }
 
   public function resolve() {
+    $logger = $this->logger;
+    $cinderella = &$this;
     foreach ($this->promises as $group => $promises) {
+      if (empty($promises)) {
+        break;
+      }
+
       foreach ($promises as $id => $promise) {
+        $pending['group'] = $group;
+        $pending['ids'][] = $id;
         $this->pending[$group][$id] = $promise;
         unset($this->promises[$group][$id]);
-        $logger = $this->logger;
-        $results = Loop::Run(function () use ($promise, $id, $group, $logger) {
-          $logger->notice("Yielding promise $id");
-          yield $promise;
-        });
       }
+      $result = \Amp\Promise\all($promises);
+      $result->onResolve(
+        function ($error = null, $result = null) use ($pending, $cinderella, $logger) {
+          foreach ($pending['ids'] as $id) {
+            $cinderella->complete($id, $pending['group']);
+          }
+          $message = 'Tasks ' . implode(', ', $pending['ids']). ' from ' . $pending['group'] . ' completed';
+          if ($error) {
+            $logger->error($message . ': '. $error->getMessage());
+          } else {
+            $logger->info($message);
+          }
+        }
+      );
     }
 
     foreach ($this->promises as $group => $promises) {
@@ -183,5 +207,13 @@ class Cinderella {
     if (!empty($this->promises)) {
       Loop::defer($this->callableFromInstanceMethod('resolve'));
     }
+  }
+
+  public function getLogger() {
+    return $this->logger;
+  }
+
+  public function complete($task, $group) {
+    unset($this->pending[$group][$task]);
   }
 }

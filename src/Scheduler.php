@@ -27,6 +27,16 @@ class Scheduler {
     $this->cinderella = $cinderella;
   }
 
+  public function getStatus() {
+    $status = [];
+    foreach ($this->schedule as $time => $tasks) {
+      foreach ($tasks as $task) {
+        $status[$time][] = $task->getId();
+      }
+    }
+    return $status;
+  }
+
   /**
    * Register a remote schedule.
    */
