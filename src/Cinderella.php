@@ -65,17 +65,19 @@ class Cinderella
         $server = new Server($servers, $router, $this->logger);
         yield $server->start();
 
-        Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
-            Loop::cancel($watcherId);
-            yield $server->stop();
-        });
+        if (defined('SIGINT')) {
+            Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
+                Loop::cancel($watcherId);
+                yield $server->stop();
+            });
+        }
     }
 
     public static function defaultConfig()
     {
         return [
         'listen' => [
-        '0.0.0.0:10101',
+            '0.0.0.0:10101',
         ],
         'max_concurrency' => 12,
         'max_queue' => 12,

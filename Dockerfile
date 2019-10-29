@@ -1,9 +1,10 @@
 FROM composer:latest
 
-COPY . /app
-RUN (cd /app && composer install)
+COPY . /cinderella
+WORKDIR /cinderella
+RUN composer install
+RUN chmod +x /cinderella/bin/cinderella
 
-ENV CINDERELLA_LISTEN="0.0.0.0:10101"
-ENV CINDERELLA_SCHEDULE_URL="file:///app/example_schedule.json"
+ENV CINDERELLA_SCHEDULE_URL="file:///cinderella/example_schedule.json"
 
-ENTRYPOINT ["/app/bin/cinderella"]
+ENTRYPOINT ["/cinderella/bin/cinderella"]

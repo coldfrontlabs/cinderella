@@ -4,4 +4,4 @@ unset HTTP_PROXY
 unset http_proxy
 unset HTTPS_PROXY
 unset https_proxy
-php -d variables_order=EGPCS -d precision=20 $DIR/cinderella.php
+php -d variables_order=EGPCS -d precision=20 -d zend.assertions=-1 $DIR/cinderella.php

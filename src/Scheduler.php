@@ -70,8 +70,6 @@ class Scheduler
         $this->remoteSchedules[$name]['last_updated'] = microtime(1);
 
         foreach ($tasks as $taskdata) {
-            $taskdata['time'] = time() + rand(1, 10);
-            $taskdata['id'] = uniqid();
             $task = Task::factory($taskdata['task'], $this->cinderella);
             $this->scheduleTask($taskdata['id'], $taskdata['time'], $task);
         }
@@ -85,21 +83,22 @@ class Scheduler
         $diff = $time - time();
         $this->logger->info("Scheduler: scheduling $id at $time (in $diff seconds");
 
-      // Don't load duplicate tasks.
+      // Reschedule duplicate tasks.
         if (isset($this->scheduledTaskIds[$id])) {
-            $this->logger->warning(
-                "Scheduler: rejected scheduling tasks $id at $time - it is already scheduled or recently run"
+            $this->logger->info(
+                "Scheduler: Rescheduling task $id at $time"
             );
-            return;
+            $oldtime = $this->scheduledTaskIds[$id];
+            unset($this->schedule[$oldtime][$id]);
         }
 
-        $this->scheduledTaskIds[$id] = $id;
+        $this->scheduledTaskIds[$id] = $time;
 
         if (!isset($this->schedule[$time])) {
             $this->schedule[$time] = [];
         }
 
-        $this->schedule[$time][] = $task;
+        $this->schedule[$time][$id] = $task;
 
         ksort($this->schedule);
         $this->tick();
