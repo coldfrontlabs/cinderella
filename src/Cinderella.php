@@ -60,11 +60,12 @@ class Cinderella
         } else {
             $this->logger->error("Couldn't start server");
         }
-
-        Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
-            Loop::cancel($watcherId);
-            yield $server->stop();
-        });
+        if (defined('SIGINT')) {
+            Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
+                Loop::cancel($watcherId);
+                yield $server->stop();
+            });
+	}
 
         Loop::run($this->callableFromInstanceMethod('scheduler'));
     }
