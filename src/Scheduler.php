@@ -27,8 +27,12 @@ class Scheduler
         $this->scheduledTasksIds = [];
         $this->logger = $logger;
         $this->cinderella = $cinderella;
+        Loop::repeat(900 * 1000, $this->callableFromInstanceMethod('scheduledRefresh'));
     }
 
+    /**
+     * Get the scheduler current status.
+     */
     public function getStatus()
     {
         $status = [];
@@ -46,6 +50,7 @@ class Scheduler
     public function register($name, $schedule)
     {
         $this->remoteSchedules[$name] = $schedule;
+        $this->remoteSchedules[$name]['refresh'] = $schedule['refresh'] ?? 900;
         $this->remoteSchedules[$name]['last_updated'] = 0;
         $this->refresh($name);
     }
@@ -55,23 +60,54 @@ class Scheduler
    */
     public function refresh($name = null)
     {
-        if (!isset($name)) {
+        if (!isset($name) or !isset($this->remoteSchedules[$name])) {
             foreach (array_keys($this->remoteSchedules) as $name) {
                 $this->refresh($name);
             }
             return;
         }
-        $this->logger->debug("Scheduler: refreshing $name");
-        $tasks = file_get_contents($this->remoteSchedules[$name]['url']);
-        if (!$tasks) {
+        $this->logger->info("Scheduler: refreshing $name");
+        $schedule = file_get_contents($this->remoteSchedules[$name]['url']);
+        if (!$schedule) {
             return;
         }
-        $tasks = json_decode($tasks, true);
-        $this->remoteSchedules[$name]['last_updated'] = microtime(1);
+        $schedule = json_decode($schedule, true);
+
+        if (!$schedule) {
+            return;
+        }
+
+        $tasks = $schedule['schedule'];
+
+        $this->remoteSchedules[$name]['refresh'] = $schedule['refresh'] ?? 900;
+        $this->remoteSchedules[$name]['last_updated'] = time();
 
         foreach ($tasks as $taskdata) {
             $task = Task::factory($taskdata['task'], $this->cinderella);
             $this->scheduleTask($taskdata['id'], $taskdata['time'], $task);
+        }
+    }
+
+    /**
+     * Refresh the scheduled, if needed.
+     */
+    public function scheduledRefresh() {
+        static $lastRefresh = 0;
+        $this->logger->debug("Scheduler: checking if schedules need refreshing.");
+        if (empty($this->remoteSchedules)) {
+            $this->logger->debug("Scheduler: no remote schedules, thus none need refreshing.");
+            return;
+        }
+
+        $now = time();
+        $nextRefreshIn = 900;
+        foreach ($this->remoteSchedules as $name => $remote) {
+            if (time() - $remote['last_updated'] > $remote['refresh']) {
+                $this->logger->debug("Scheduler: $name needs refreshing");
+                $this->refresh($name);
+            } else {
+                $this->logger->debug("Scheduler: $name does not needs refreshing");
+            }
         }
     }
 

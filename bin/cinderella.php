@@ -19,7 +19,7 @@ if (isset($argv[1])) {
 if (!$config) {
   $config = Cinderella::defaultConfig();
   if (isset($_ENV["CINDERELLA_LISTEN"])) {
-    $config['listen'] = $_ENV["CINDERELLA_LISTEN"];
+    $config['listen'] = [$_ENV["CINDERELLA_LISTEN"]];
   }
 
   if (isset($_ENV["CINDERELLA_SCHEDULE_URL"])) {
@@ -27,7 +27,7 @@ if (!$config) {
   }
 }
 
-$logHandler = new StreamHandler(new ResourceOutputStream(\STDOUT),  LogLevel::INFO);
+$logHandler = new StreamHandler(new ResourceOutputStream(\STDOUT),  LogLevel::DEBUG);
 $logHandler->setFormatter(new ConsoleFormatter);
 $logger = new Logger('cinderella');
 $logger->pushHandler($logHandler);

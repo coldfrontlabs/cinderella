@@ -36,15 +36,6 @@ class Cinderella
         $this->config = $config + $this->defaultConfig();
         $this->config['endpoint'] = $config['endpoint'] + $this->defaultConfig()['endpoint'];
         $this->logger = $logger;
-        $this->scheduler = new Scheduler($this->logger, $this);
-
-        if (isset($config['schedule'])) {
-            foreach ($config['schedule'] as $name => $schedule) {
-                $this->scheduler->register($name, $schedule);
-                $this->logger->debug("Registering schedule $name: {$schedule['url']}");
-            }
-        }
-
         Loop::run($this->callableFromInstanceMethod('server'));
     }
 
@@ -63,13 +54,29 @@ class Cinderella
         }
 
         $server = new Server($servers, $router, $this->logger);
-        yield $server->start();
 
-        if (defined('SIGINT')) {
-            Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
-                Loop::cancel($watcherId);
-                yield $server->stop();
-            });
+        if ($result = $server->start()) {
+            yield $result;
+        } else {
+            $this->logger->error("Couldn't start server");
+        }
+
+        Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
+            Loop::cancel($watcherId);
+            yield $server->stop();
+        });
+
+        Loop::run($this->callableFromInstanceMethod('scheduler'));
+    }
+
+    private function scheduler() {
+        $this->scheduler = new Scheduler($this->logger, $this);
+
+        if (isset($this->config['schedule'])) {
+            foreach ($this->config['schedule'] as $name => $schedule) {
+                $this->scheduler->register($name, $schedule);
+                $this->logger->info("Registering schedule $name: {$schedule['url']}");
+            }
         }
     }
 
@@ -77,7 +84,7 @@ class Cinderella
     {
         return [
         'listen' => [
-            '0.0.0.0:10101',
+        '0.0.0.0:10101',
         ],
         'max_concurrency' => 12,
         'max_queue' => 12,
