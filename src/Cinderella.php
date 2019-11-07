@@ -84,23 +84,21 @@ class Cinderella
     public static function defaultConfig()
     {
         return [
-        'listen' => [
-        '0.0.0.0:10101',
-        ],
-        'max_concurrency' => 12,
-        'max_queue' => 12,
-        'endpoint' => [
-        'status' => [
-          'type' => TaskType::STATUS,
-        ],
-        'schedule-refresh' => [
-          'type' => TaskType::SCHEDULE_REFRESH,
-        ],
-        'task' => [
-          'type' => TaskType::TASK_RUNNER,
-          'method' => 'POST',
-        ]
-        ],
+            'listen' => [
+                '0.0.0.0:10101',
+            ],
+            'endpoint' => [
+                'status' => [
+                    'type' => TaskType::STATUS,
+                ],
+                'schedule-refresh' => [
+                    'type' => TaskType::SCHEDULE_REFRESH,
+                ],
+                'task' => [
+                    'type' => TaskType::TASK_RUNNER,
+                    'method' => 'POST',
+                ]
+            ],
         ];
     }
 
