@@ -47,7 +47,12 @@ class TaskRunner extends Task
                 if ($error) {
                     $logger->error("Task $id ($time seconds): an error occured:" . $error->getMessage());
                 } else {
-                    $resolveTask->run();
+                    $options = [
+                        'body' => [
+                            'resolve' => $result,
+                        ],
+                    ];
+                    $resolveTask->run($options);
                     $logger->info("Task $id ($time seconds): Successful - " . $result);
                 }
             }

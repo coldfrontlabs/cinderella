@@ -52,7 +52,7 @@ class Task
       // Do nothing in base task.
     }
 
-    public function run()
+    public function run($options = [])
     {
         $message = "Running {$this->type}\n";
         return new TaskResult($message, null);

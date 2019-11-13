@@ -9,7 +9,7 @@ use Cinderella\Cinderella;
 class HttpRequest extends Task
 {
 
-    public function run()
+    public function run($options = [])
     {
         static $client = null;
         if (!$client) {
@@ -17,6 +17,7 @@ class HttpRequest extends Task
         }
         $start = microtime(true);
 
+        $this->options = array_merge_recursive($this->options, $options);
         $url = $this->options['url'];
         $method = $this->options['method'];
         $body = $this->options['body'] ?? null;
@@ -27,6 +28,9 @@ class HttpRequest extends Task
         $promise = \Amp\call(function () use ($client, $url, $method, $body, $headers, $id) {
             $request = new Request($url, $method);
             if (isset($body)) {
+                if (is_array($body)) {
+                    $body = json_encode($body);
+                }
                 $request->withBody($body);
             }
 
