@@ -156,11 +156,8 @@ class Cinderella
         } finally {
         }
 
-        if ($message = $result->getMessage()) {
-            $this->logger->notice($message);
-            return $message;
-        }
-        return false;
+        $this->logger->notice($result->getMessage());
+        return json_encode($result->toArray());
     }
 
     public function refreshScheduler()
@@ -180,9 +177,9 @@ class Cinderella
     public function getStatus()
     {
         return [
-        'promises' => array_map('array_keys', $this->promises),
-        'pending' => array_map('array_keys', $this->pending),
-        'schedule' => $this->scheduler->getStatus(),
+            'promises' => array_map('array_keys', $this->promises),
+            'pending' => array_map('array_keys', $this->pending),
+            'schedule' => $this->scheduler->getStatus(),
         ];
     }
 

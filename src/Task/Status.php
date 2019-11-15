@@ -4,9 +4,9 @@ namespace Cinderella\Task;
 
 class Status extends Task
 {
-    public function run()
+    public function run($options = [])
     {
         $status = $this->cinderella->getStatus();
-        return new TaskResult(json_encode($status), null);
+        return new TaskResult($this->id, $status);
     }
 }
