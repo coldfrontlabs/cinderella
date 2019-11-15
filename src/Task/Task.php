@@ -7,6 +7,7 @@ use Cinderella\Cinderella;
 class Task
 {
     protected $id;
+    protected $remoteId;
     protected $options;
     protected $queue;
     protected $type;
@@ -16,6 +17,7 @@ class Task
     {
         $this->id = uniqid();
         $this->options = $options + $this->defaults();
+        $this->remoteId = $options['id'] ?? NULL;
         $this->queue = [];
         $this->type = $type;
         $this->cinderella = $cinderella;

@@ -11,6 +11,6 @@ class Bash extends Task
         $process = new Process($this->options['parameters']['cmd']);
         $promise = $process->start();
         $message = $path . ' - Executing ' . $this->options['parameters']['cmd'];
-        return new TaskResult($this->id, $message, $promise);
+        return new TaskResult($this->id, $this->remoteId, $message, $promise);
     }
 }

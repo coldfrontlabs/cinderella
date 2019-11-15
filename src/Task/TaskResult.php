@@ -5,13 +5,15 @@ namespace Cinderella\Task;
 class TaskResult
 {
     protected $id;
+    protected $remoteId;
     protected $message;
     protected $promise;
     protected $data;
 
-    public function __construct($id, $message, $promise = null, $data = [])
+    public function __construct($id, $remoteId, $message, $promise = null, $data = [])
     {
         $this->id = $id;
+        $this->remoteId = $remoteId;
         $this->message = $message;
         $this->promise = $promise;
         $this->data = $data;
@@ -20,6 +22,11 @@ class TaskResult
     public function getId()
     {
         return $this->id;
+    }
+
+    public function getRemoteId()
+    {
+        return $this->remoteId;
     }
 
     public function getMessage()
@@ -40,6 +47,7 @@ class TaskResult
     public function toArray() {
         return [
             'id' => $this->getId(),
+            'remoteid' => $this->getRemoteId(),
             'message' => $this->getMessage(),
             'data' => $this->getData(),
         ];

@@ -63,6 +63,6 @@ class TaskRunner extends Task
         );
 
         $message = "Task $id: Scheduling set of tasks";
-        return new TaskResult($id, $message, $promise, $data);
+        return new TaskResult($id, $this->remoteId, $message, $promise, $data);
     }
 }

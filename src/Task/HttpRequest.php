@@ -23,8 +23,9 @@ class HttpRequest extends Task
         $body = $this->options['body'] ?? null;
         $headers = $this->options['headers'] ?? [];
         $id = $this->getId();
+        $remoteid = $this->options['id'];
         $logger = $this->cinderella->getLogger();
-        $promise = \Amp\call(function () use ($client, $url, $method, $body, $headers, $id, $logger) {
+        $promise = \Amp\call(function () use ($client, $url, $method, $body, $headers, $id, $remoteid, $logger) {
             $request = new Request($url, $method);
             if (isset($body)) {
                 if (is_array($body)) {
@@ -43,6 +44,7 @@ class HttpRequest extends Task
 
             return [
                 'id' => $id,
+                'remoteid' => $remoteid,
                 'url' => $url,
                 'method' => $method,
                 'status' => $response->getStatus(),
@@ -64,6 +66,6 @@ class HttpRequest extends Task
             }
         );
         $message = "Task $id: Deffered sending HTTP Request to $url";
-        return new TaskResult($id, $message, $promise, []);
+        return new TaskResult($id, $this->remoteId, $message, $promise, []);
     }
 }
