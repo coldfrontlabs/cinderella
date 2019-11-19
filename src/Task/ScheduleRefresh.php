@@ -6,7 +6,7 @@ class ScheduleRefresh extends Task
 {
     public function run($options = [])
     {
-        $this->cinderella->refreshScheduler();
+        Loop::defer($this->cinderella->callableFromInstanceMethod('refreshScheduler'));
         return new TaskResult($this->id, $this->remoteId, "Scheduler refreshed sources");
     }
 }

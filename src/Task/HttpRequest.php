@@ -40,7 +40,6 @@ class HttpRequest extends Task
             }
 
             $response = yield $client->request($request);
-            $contents = yield $response->getBody();
 
             return [
                 'id' => $id,
@@ -49,7 +48,7 @@ class HttpRequest extends Task
                 'method' => $method,
                 'status' => $response->getStatus(),
                 'reason' => $response->getReason(),
-                'body' => $contents,
+                'body' => $response->getBody(),
             ];
         });
 
