@@ -19,7 +19,7 @@ class HttpRequest extends Task
 
         $this->options = array_merge_recursive($this->options, $options);
         $url = $this->options['url'];
-        $method = $this->options['method'];
+        $method = $this->options['method'] ?? 'GET';
         $body = $this->options['body'] ?? null;
         $headers = $this->options['headers'] ?? [];
         $id = $this->getId();
@@ -40,6 +40,7 @@ class HttpRequest extends Task
             }
 
             $response = yield $client->request($request);
+            $body = yield $response->getBody();
 
             return [
                 'id' => $id,
@@ -48,7 +49,7 @@ class HttpRequest extends Task
                 'method' => $method,
                 'status' => $response->getStatus(),
                 'reason' => $response->getReason(),
-                'body' => $response->getBody(),
+                'body' => $body,
             ];
         });
 
