@@ -156,13 +156,13 @@ class Cinderella
         } finally {
         }
 
-        $this->logger->notice($result->getMessage());
+        $this->logger->notice('Ran ' . $task->getId());
         return json_encode($result->toArray());
     }
 
     public function refreshScheduler()
     {
-        return $this->scheduler->refresh();
+        return $this->scheduler->asyncRefresh();
     }
 
     public function scheduleTask($array)

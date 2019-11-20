@@ -55,6 +55,10 @@ class Scheduler
         $this->refresh($name);
     }
 
+    public function asyncRefresh() {
+        Loop::defer($this->callableFromInstanceMethod('refresh'));
+    }
+
   /**
    * Load remote schedule.
    */
