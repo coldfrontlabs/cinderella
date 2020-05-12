@@ -2,7 +2,6 @@
 
 namespace Cinderella;
 
-use Amp\Artax\DefaultClient;
 use Amp\CallableMaker;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Server\Request;

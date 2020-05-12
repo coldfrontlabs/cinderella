@@ -12,8 +12,8 @@
         "amphp/http-server-router": "^1.0",
         "symfony/yaml": "^4.2",
         "amphp/log": "^1.0",
-        "amphp/artax": "^3.0",
-        "amphp/process": "^1.1"
+        "amphp/process": "^1.1",
+        "amphp/http-client": "^4.3"
     },
     "autoload": {
         "psr-4": {"Cinderella\\": "src/"}

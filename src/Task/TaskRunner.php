@@ -2,8 +2,6 @@
 
 namespace Cinderella\Task;
 
-use Amp\Artax\DefaultClient;
-use Amp\Artax\Request;
 use Cinderella\Cinderella;
 
 class TaskRunner extends Task

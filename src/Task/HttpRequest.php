@@ -2,9 +2,8 @@
 
 namespace Cinderella\Task;
 
-use Amp\Artax\DefaultClient;
-use Amp\Artax\Client;
-use Amp\Artax\Request;
+use Amp\Http\Client\HttpClientBuilder;
+use Amp\Http\Client\Request;
 use Cinderella\Cinderella;
 
 class HttpRequest extends Task
@@ -12,43 +11,41 @@ class HttpRequest extends Task
 
     public function run($options = [])
     {
-        static $client = null;
-        if (!$client) {
-            $client = new DefaultClient();
-        }
         $starttime = microtime(true);
+        $client = HttpClientBuilder::buildDefault();
 
         $this->options = array_merge_recursive($this->options, $options);
         $url = $this->options['url'];
         $method = $this->options['method'] ?? 'GET';
-        $timeout = isset($this->options['timeout']) && is_int($this->options['timeout']) ? $this->options['timeout'] : 15;
         $body = $this->options['body'] ?? null;
         $headers = $this->options['headers'] ?? [];
         $id = $this->getId();
         $remoteid = $this->options['id'];
         $logger = $this->cinderella->getLogger();
+        $timeout = isset($this->options['timeout']) && is_int($this->options['timeout']) ? $this->options['timeout'] : 15;
+
         $promise = \Amp\call(function () use ($client, $url, $method, $body, $headers, $id, $remoteid, $logger, $timeout, $starttime) {
             $request = new Request($url, $method);
             if (isset($body)) {
                 if (is_array($body)) {
                     $body = json_encode($body);
                 }
-                $request = $request->withHeader('Content-type', 'application/json');
-                $request = $request->withBody($body);
+                $request->setHeader('Content-type', 'application/json');
+                $request->setBody($body);
             }
 
             foreach ($headers as $header => $value) {
-                $request = $request->withHeader($header, $value);
+                $request->setHeader($header, $value);
             }
 
-            $client->setOption(Client::OP_TRANSFER_TIMEOUT, $timeout * 1000);
+            $request->setInactivityTimeout($timeout * 1000);
             $timing = [
                 'start' => $starttime,
             ];
 
             try {
                 $response = yield $client->request($request);
-                $body = yield $response->getBody();
+                $body = yield $response->getBody()->buffer();
 
                 $endtime = microtime(true);
                 $timing['end'] = $endtime;
