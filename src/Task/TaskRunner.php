@@ -41,10 +41,17 @@ class TaskRunner extends Task
 
         $resolveTask = Task::Factory($this->options['resolve'], $this->cinderella);
 
-        $promise = \Amp\Promise\all($promises);
+        $promise = \Amp\Promise\some($promises, 0);
         $promise->onResolve(
             function ($error = null, $result = null) use ($resolveTask, $id, $start, $logger) {
                 $time = microtime(true) - $start;
+                if ($error) {
+                    $result = $error->getReasons();
+                    $logger->error("Task $id ($time seconds): an error occured:" . print_r($result, TRUE));
+                } else {
+                    $logger->info("Task $id ($time seconds): Successfully ran all tasks");
+                }
+
                 $options = [
                     'body' => [
                         'resolve' => [
@@ -54,11 +61,6 @@ class TaskRunner extends Task
                     ],
                 ];
                 $resolveTask->run($options);
-                if ($error) {
-                    $logger->error("Task $id ($time seconds): an error occured:" . $error->getMessage());
-                } else {
-                    $logger->info("Task $id ($time seconds): Successfully ran all tasks");
-                }
             }
         );
 

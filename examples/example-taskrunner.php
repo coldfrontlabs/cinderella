@@ -1,1 +1,0 @@
-curl -X POST --data '{"type":"task_runner","tasks":[{"type":"http_request","id":"first:task","url":"http://localhost:8000/api/task.php"}],"resolve":{"type":"http_request","id":"first:task","url":"http://localhost:8000/api/resolve.php"}}' http://localhost:10101/task

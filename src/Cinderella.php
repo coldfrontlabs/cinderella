@@ -169,7 +169,6 @@ class Cinderella
     {
         $id = 'unnamed:' . $array['id'];
         $tasktime = $task['time'];
-        $tasktime = time() + rand(10, 45);
         $task = Task::factory($task['task'], $this->cinderella);
         return $this->scheduler->scheduleTask($id, $time, $task);
     }
