@@ -19,4 +19,4 @@ curl \
     {"type":"http_request","id":"502 error","url":"http://localhost:8888/api/httpcode-task.php?code=502","timeout":1},
     {"type":"http_request","id":"503 error","url":"http://localhost:8888/api/httpcode-task.php?code=503","timeout":1}
   ],"resolve":{"type":"http_request","id":"first:task","url":"http://localhost:8888/api/resolve.php"}}' \
-  http://localhost:10102/task
+  http://localhost:10101/task

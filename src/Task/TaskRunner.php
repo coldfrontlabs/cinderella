@@ -24,7 +24,6 @@ class TaskRunner extends Task
         $promises = [];
         $messages = [];
         $logger = $this->cinderella->getLogger();
-        $data = [];
         foreach ($this->options['tasks'] as $taskdata) {
             $task = Task::Factory($taskdata, $this->cinderella);
             $result = $task->run();
@@ -34,7 +33,6 @@ class TaskRunner extends Task
             if ($message = $result->getMessage()) {
                 $messages[] = $message;
             }
-            $data[$result->getId()] = $result->getData();
         }
 
         $resolveTask = Task::Factory($this->options['resolve'], $this->cinderella);
@@ -53,7 +51,8 @@ class TaskRunner extends Task
                 $options = [
                     'body' => [
                         'resolve' => [
-                            'results' => $result,
+                            'results' => $result[1],
+                            'exceptions' => $result[0],
                             'time' => $time,
                         ],
                     ],
