@@ -44,7 +44,7 @@ class TaskRunner extends Task
         }
 
         $promise = \Amp\Promise\some($promises, 0);
-        if (isset($this->option['resolve'])) {
+        if (isset($this->options['resolve'])) {
             $resolveTask = Task::Factory($this->options['resolve'], $this->cinderella);
 
             $promise->onResolve(
@@ -67,6 +67,7 @@ class TaskRunner extends Task
                         ],
                     ];
                     $resolveTask->mergeOptions($options);
+                    $logger->info("Task $id ($time seconds): Running resolve tasks {$resolveTask->getLoggingName()}");
                     $resolveTask->run();
                 }
             );
