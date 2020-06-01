@@ -15,6 +15,7 @@ use Amp\Log\StreamHandler;
 use Amp\Loop;
 use Amp\Process\Process;
 use Amp\Socket;
+use Cinderella\Task\QueuedTask;
 use Cinderella\Task\Task;
 use Cinderella\Task\TaskType;
 use Monolog\Logger;
@@ -70,7 +71,8 @@ class Cinderella
         Loop::run($this->callableFromInstanceMethod('scheduler'));
     }
 
-    private function scheduler() {
+    private function scheduler()
+    {
         $this->scheduler = new Scheduler($this->logger, $this);
 
         if (isset($this->config['schedule'])) {
@@ -171,13 +173,17 @@ class Cinderella
     {
         $id = 'unnamed:' . $array['id'];
         $tasktime = $task['time'];
-        $task = Task::factory($task['task'], $this->cinderella);
+        $task = Task::factory($task['task'], $this);
         return $this->scheduler->scheduleTask($id, $time, $task);
     }
 
-    public function queueTask($queue, $task) {
-        $queuedtask = Task::factory($task, $this->cinderella);
-        return $this->queue->queueTask($queue, $queuedtask);
+    public function queueTask($queue, $task, $resolve) {
+        $queued_task = Task::factory($task, $this);
+        $resolve_task = NULL;
+        if ($resolve) {
+            $resolve_task = Task::factory($resolve, $this);
+        }
+        return $this->queue->queueTask($queue, $queued_task, $resolve_task);
     }
 
     public function getStatus()
@@ -188,6 +194,10 @@ class Cinderella
             'schedule' => $this->scheduler->getStatus(),
             'queue' => $this->queue->getStatus(),
         ];
+    }
+
+    public function addPromise($group, $id, $promise) {
+        $this->promises[$group][$id] = $promise;
     }
 
     public function resolve()

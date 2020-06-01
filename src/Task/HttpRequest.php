@@ -8,6 +8,7 @@ use Cinderella\Cinderella;
 
 class HttpRequest extends Task
 {
+
     public function defaults() {
         return [
             'body' => NULL,
@@ -19,11 +20,12 @@ class HttpRequest extends Task
         ];
     }
 
-    public function run()
+    public function run($options = [])
     {
         $starttime = microtime(true);
         $client = HttpClientBuilder::buildDefault();
 
+        $this->options = array_merge_recursive($this->options, $options);
         $body = $this->options['body'];
         $headers = $this->options['headers'];
         $id = $this->getId();
