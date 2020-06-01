@@ -25,9 +25,9 @@ class Cinderella
     use CallableMaker;
 
     private $config;
-    private $promises = [];
     private $pending = [];
-    private $queue = [];
+    private $promises = [];
+    private $queue;
     private $scheduler;
 
     public function __construct($config, $logger)
@@ -35,6 +35,7 @@ class Cinderella
         $this->config = $config + $this->defaultConfig();
         $this->config['endpoint'] = $config['endpoint'] + $this->defaultConfig()['endpoint'];
         $this->logger = $logger;
+        $this->queue = new Queue($this->logger, $this);
         Loop::run($this->callableFromInstanceMethod('server'));
     }
 
@@ -64,7 +65,7 @@ class Cinderella
                 Loop::cancel($watcherId);
                 yield $server->stop();
             });
-	}
+        }
 
         Loop::run($this->callableFromInstanceMethod('scheduler'));
     }
@@ -96,7 +97,7 @@ class Cinderella
                 'task' => [
                     'type' => TaskType::TASK_RUNNER,
                     'method' => 'POST',
-                ]
+                ],
             ],
         ];
     }
@@ -133,8 +134,11 @@ class Cinderella
             $buffer .= $chunk;
         }
         $body = json_decode($buffer, true);
+        if (!$body) {
+            $body = [];
+        }
 
-        $task = Task::factory($config, $this, $body);
+        $task = Task::factory($body + $config, $this);
 
         if ($message = $this->run($task, $path)) {
             return new Response(Status::OK, ['content-type' => 'text/plain'], $message);
@@ -146,7 +150,6 @@ class Cinderella
     public function run(Task $task, $path)
     {
         $result = $task->run();
-
         if ($promise = $result->getPromise()) {
             $this->promises[$path][$task->getId()] = $promise;
         }
@@ -156,7 +159,7 @@ class Cinderella
         }
 
         $this->logger->notice('Ran ' . $task->getId());
-        return json_encode($result->toArray());
+        return json_encode($result->toArray(), JSON_PRETTY_PRINT);
     }
 
     public function refreshScheduler()
@@ -172,12 +175,18 @@ class Cinderella
         return $this->scheduler->scheduleTask($id, $time, $task);
     }
 
+    public function queueTask($queue, $task) {
+        $queuedtask = Task::factory($task, $this->cinderella);
+        return $this->queue->queueTask($queue, $queuedtask);
+    }
+
     public function getStatus()
     {
         return [
             'promises' => array_map('array_keys', $this->promises),
             'pending' => array_map('array_keys', $this->pending),
             'schedule' => $this->scheduler->getStatus(),
+            'queue' => $this->queue->getStatus(),
         ];
     }
 

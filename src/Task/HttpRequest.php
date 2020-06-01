@@ -8,21 +8,30 @@ use Cinderella\Cinderella;
 
 class HttpRequest extends Task
 {
+    public function defaults() {
+        return [
+            'body' => NULL,
+            'headers' => [],
+            'id' => NULL,
+            'method' => 'GET',
+            'timeout' => 15,
+            'url' => NULL,
+        ];
+    }
 
-    public function run($options = [])
+    public function run()
     {
         $starttime = microtime(true);
         $client = HttpClientBuilder::buildDefault();
 
-        $this->options = array_merge_recursive($this->options, $options);
-        $url = $this->options['url'];
-        $method = $this->options['method'] ?? 'GET';
-        $body = $this->options['body'] ?? null;
-        $headers = $this->options['headers'] ?? [];
+        $body = $this->options['body'];
+        $headers = $this->options['headers'];
         $id = $this->getId();
-        $remoteid = $this->options['id'];
         $logger = $this->cinderella->getLogger();
-        $timeout = isset($this->options['timeout']) && is_int($this->options['timeout']) ? $this->options['timeout'] : 15;
+        $method = $this->options['method'];
+        $remoteid = $this->options['id'];
+        $timeout = $this->options['timeout'];
+        $url = $this->options['url'];
 
         $promise = \Amp\call(function () use ($client, $url, $method, $body, $headers, $id, $remoteid, $logger, $timeout, $starttime) {
             $request = new Request($url, $method);

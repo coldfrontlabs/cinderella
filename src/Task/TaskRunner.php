@@ -7,17 +7,25 @@ use Cinderella\Cinderella;
 class TaskRunner extends Task
 {
 
+    public function defaults() {
+        return [
+            'tasks' => [],
+            'resolve' => null,
+        ];
+    }
+
+
     public function processArguments($arguments)
     {
         if (!isset($this->options['tasks'])) {
             $this->options['tasks'] = $arguments['tasks'];
         }
-        if (!isset($this->options['resolve'])) {
+        if (!isset($this->options['resolve']) and isset($arguments['resolve'])) {
             $this->options['resolve'] = $arguments['resolve'];
         }
     }
 
-    public function run($options = [])
+    public function run()
     {
         $start = microtime(true);
         $id = $this->getId();
@@ -35,33 +43,36 @@ class TaskRunner extends Task
             }
         }
 
-        $resolveTask = Task::Factory($this->options['resolve'], $this->cinderella);
-
         $promise = \Amp\Promise\some($promises, 0);
-        $promise->onResolve(
-            function ($error = null, $result = null) use ($resolveTask, $id, $start, $logger) {
-                $time = microtime(true) - $start;
-                if ($error) {
-                    $result = $error->getReasons();
-                    $logger->error("Task $id ($time seconds): an error occured:" . print_r($result, TRUE));
-                } else {
-                    $logger->info("Task $id ($time seconds): Successfully ran all tasks");
-                }
+        if (isset($this->option['resolve'])) {
+            $resolveTask = Task::Factory($this->options['resolve'], $this->cinderella);
 
-                $options = [
-                    'body' => [
-                        'resolve' => [
-                            'results' => $result[1],
-                            'exceptions' => $result[0],
-                            'time' => $time,
+            $promise->onResolve(
+                function ($error = null, $result = null) use ($resolveTask, $id, $start, $logger) {
+                    $time = microtime(true) - $start;
+                    if ($error) {
+                        $result = $error->getReasons();
+                        $logger->error("Task $id ($time seconds): an error occured:" . print_r($result, TRUE));
+                    } else {
+                        $logger->info("Task $id ($time seconds): Successfully ran all tasks");
+                    }
+
+                    $options = [
+                        'body' => [
+                            'resolve' => [
+                                'results' => $result[1],
+                                'exceptions' => $result[0],
+                                'time' => $time,
+                            ],
                         ],
-                    ],
-                ];
-                $resolveTask->run($options);
-            }
-        );
+                    ];
+                    $resolveTask->mergeOptions($options);
+                    $resolveTask->run();
+                }
+            );
+        }
 
         $message = "Task $id: Scheduling set of tasks";
-        return new TaskResult($id, $this->remoteId, $message, $promise, $data);
+        return new TaskResult($id, $this->remoteId, $message, $promise);
     }
 }
