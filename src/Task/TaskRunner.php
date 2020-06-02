@@ -9,6 +9,7 @@ class TaskRunner extends Task
 
     public function defaults() {
         return [
+            'id' => NULL,
             'tasks' => [],
             'resolve' => null,
         ];

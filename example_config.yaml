@@ -8,10 +8,6 @@ endpoint:
     method: GET
     parameters:
       url: http://csiuo.com/sleep.php
-  'runit/whoami':
-    type: bash
-    parameters:
-      cmd: "sleep 10"
 schedule:
   testschedule:
     url: "file://example_schedule.json"

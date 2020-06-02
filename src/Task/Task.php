@@ -41,7 +41,9 @@ class Task
 
     protected function defaults()
     {
-        return [];
+        return [
+            'id',
+        ];
     }
 
     protected function cleanup()
@@ -81,8 +83,8 @@ class Task
             case TaskType::PICK_LENTILS:
                 return new PickLentils(TaskType::PICK_LENTILS, $task, $cinderella);
 
-            case TaskType::TRY_ON_SHOE:
-                return new TryOnShoe(TaskType::TRY_ON_SHOE, $task, $cinderella);
+            case TaskType::TRY_ON_SLIPPER:
+                return new TryOnSlipper(TaskType::TRY_ON_SLIPPER, $task, $cinderella);
 
             case TaskType::NONE:
             default:

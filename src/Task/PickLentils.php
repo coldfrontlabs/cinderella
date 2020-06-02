@@ -17,6 +17,7 @@ class PickLentils extends Task
 
     public function defaults() {
         return [
+            'id' => NULL,
             'lentils' => 5,
         ];
     }

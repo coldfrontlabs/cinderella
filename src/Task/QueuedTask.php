@@ -21,6 +21,7 @@ class QueuedTask extends Task
 
     public function defaults() {
         return [
+            'id' => NULL,
             'queue' => 'default',
             'task' => NULL,
             'resolve' => NULL,

@@ -2,7 +2,7 @@
 
 namespace Cinderella\Task;
 
-class TryOnShoe extends Task
+class TryOnSlipper extends Task
 {
     public function run()
     {
