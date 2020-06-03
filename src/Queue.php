@@ -95,7 +95,8 @@ class Queue
         Loop::defer($this->callableFromInstanceMethod('processQueue'));
     }
 
-    private function resolveResolveTask($queueid, $name) {
+    private function resolveResolveTask($queueid, $name)
+    {
         unset($this->promises[$queueid][$name]);
         if (sizeof($this->promises[$queueid]) == 0) {
             unset($this->promises[$queueid]);
