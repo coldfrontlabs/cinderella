@@ -4,7 +4,7 @@ namespace Cinderella\Task;
 
 class TryOnSlipper extends Task
 {
-    public function run()
+    public function run(): TaskResult
     {
         return new TaskResult(
             $this->id,

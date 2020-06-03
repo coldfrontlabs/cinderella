@@ -21,7 +21,7 @@ class HttpRequest extends Task
         ];
     }
 
-    public function run($options = [])
+    public function run($options = []): TaskResult
     {
         $starttime = microtime(true);
         $client = HttpClientBuilder::buildDefault();

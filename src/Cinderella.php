@@ -237,14 +237,6 @@ class Cinderella
     }
 
     /**
-     * Add pending promises to the running promises tracker.
-     */
-    public function addPromise($group, $id, $promise)
-    {
-        $this->promises[$group][$id] = $promise;
-    }
-
-    /**
      * Track resolved promises.
      */
     public function resolve()

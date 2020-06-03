@@ -59,8 +59,8 @@ class Queue
                     $result = $task->run();
                     $this->logger->notice('Queue: Ran ' . $task->getLoggingName() . ': ' . $result->getMessage());
                     $promise = $result->getPromise();
-                    $this->promises[$queueid] = $task->getLoggingName();
-                    $callback = $this->callableFromInstanceMethod('resetQueue');
+                    $this->promises[$queueid][$task->getLoggingName()] = $promise;
+                    $callback = $this->callableFromInstanceMethod('resolveQueueTask');
                     if ($promise) {
                         $this->status[$queueid] = Queue::RUNNING;
                         $promise->onResolve(function () use ($queueid, $callback, $resolve) {
@@ -73,7 +73,7 @@ class Queue
         }
     }
 
-    private function resetQueue($queueid, $resolve)
+    private function resolveQueueTask($queueid, $resolve)
     {
         $this->status[$queueid] = Queue::IDLE;
         unset($this->promises[$queueid]);
@@ -82,11 +82,24 @@ class Queue
             $this->logger->notice("Queue: Running resolve tasks from $queueid "
             . $resolve->getLoggingName() . ': ' . $result->getMessage());
             $promise = $result->getPromise();
+            $name = $resolve->getLoggingName();
+            $resolvequeue = 'resolve-' . $queueid;
+            $callback = $this->callableFromInstanceMethod('resolveResolveTask');
             if ($promise) {
-                $this->cinderella->addPromise('queue-' . $queueid, $resolve->getLoggingName(), $promise);
+                $this->promises[$resolvequeue][$name] = $promise;
+                $promise->onResolve(function () use ($callback, $name, $resolvequeue) {
+                    $callback($resolvequeue, $name);
+                });
             }
         }
         Loop::defer($this->callableFromInstanceMethod('processQueue'));
+    }
+
+    private function resolveResolveTask($queueid, $name) {
+        unset($this->promises[$queueid][$name]);
+        if (sizeof($this->promises[$queueid]) == 0) {
+            unset($this->promises[$queueid]);
+        }
     }
 
     public function cancelTask($queueid, $remoteid)
@@ -108,10 +121,15 @@ class Queue
                 return $task[0]->getLoggingName();
             }, $tasks);
         }
+        $promises = [];
+        foreach ($this->promises as $queueid => $ps) {
+            $promises[$queueid] = array_keys($ps);
+        }
+
         return [
             'queues' => $queues,
             'status' => $this->status,
-            'promises' => $this->promises,
+            'promises' => $promises,
         ];
     }
 }

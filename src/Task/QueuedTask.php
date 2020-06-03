@@ -9,7 +9,7 @@ use Cinderella\Cinderella;
 class QueuedTask extends Task
 {
 
-    public function run()
+    public function run(): TaskResult
     {
         $this->cinderella->queueTask($this->options['queue'], $this->options['task'], $this->options['resolve']);
         return new TaskResult(

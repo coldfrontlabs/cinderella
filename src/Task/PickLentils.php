@@ -23,7 +23,7 @@ class PickLentils extends Task
         ];
     }
 
-    public function run()
+    public function run(): TaskResult
     {
         $message = "Picking {$this->options['lentils']} from the fireplace";
         $this->cinderella->getLogger()->info($message);

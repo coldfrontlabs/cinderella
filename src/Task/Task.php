@@ -53,7 +53,7 @@ class Task
       // Do nothing in base task.
     }
 
-    public function run()
+    public function run(): TaskResult
     {
         $message = "Running {$this->type}\n";
         return new TaskResult($message, null);

@@ -27,7 +27,7 @@ class TaskRunner extends Task
         }
     }
 
-    public function run()
+    public function run(): TaskResult
     {
         $start = microtime(true);
         $id = $this->getId();
