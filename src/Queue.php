@@ -7,7 +7,8 @@ use Amp\Loop;
 use Cinderella\Task\Task;
 use Cinderella\Task\TaskType;
 
-class Queue {
+class Queue
+{
     use CallableMaker;
 
     public const IDLE = 'idle';
@@ -30,19 +31,22 @@ class Queue {
         $this->cinderella = $cinderella;
     }
 
-    public function queueTask($queueid, Task $task, $resolve = NULL) {
+    public function queueTask($queueid, Task $task, $resolve = null)
+    {
         $this->queues[$queueid][] = [$task, $resolve];
         if (!isset($this->status[$queueid])) {
             $this->status[$queueid] = Queue::IDLE;
         }
         $name = $task->getLoggingName();
         $this->logger->info(
-            "Queue: Queuing task $name in queue $queueid ({$this->status[$queueid]}: " . sizeof($this->queues[$queueid]) . " waiting tasks)"
+            "Queue: Queuing task $name in queue $queueid ({$this->status[$queueid]}: "
+            . sizeof($this->queues[$queueid]) . " waiting tasks)"
         );
         Loop::defer($this->callableFromInstanceMethod('processQueue'));
     }
 
-    public function processQueue() {
+    public function processQueue()
+    {
         $this->logger->info("Queue: Processing queue");
         foreach ($this->status as $queueid => $status) {
             if ($status == Queue::IDLE) {
@@ -69,12 +73,14 @@ class Queue {
         }
     }
 
-    private function resetQueue($queueid, $resolve) {
+    private function resetQueue($queueid, $resolve)
+    {
         $this->status[$queueid] = Queue::IDLE;
         unset($this->promises[$queueid]);
         if ($resolve) {
             $result = $resolve->run();
-            $this->logger->notice("Queue: Running resolve tasks from $queueid " . $resolve->getLoggingName() . ': ' . $result->getMessage());
+            $this->logger->notice("Queue: Running resolve tasks from $queueid "
+            . $resolve->getLoggingName() . ': ' . $result->getMessage());
             $promise = $result->getPromise();
             if ($promise) {
                 $this->cinderella->addPromise('queue-' . $queueid, $resolve->getLoggingName(), $promise);
@@ -83,20 +89,24 @@ class Queue {
         Loop::defer($this->callableFromInstanceMethod('processQueue'));
     }
 
-    public function cancelTask($queueid, $remoteid) {
+    public function cancelTask($queueid, $remoteid)
+    {
         foreach ($this->queues[$queueid] as $key => $task) {
             if ($task->getRemoteId() == $remoteid) {
                 unset($this->queues[$queueid][$key]);
-                return TRUE;
+                return true;
             }
         }
-        return FALSE;
+        return false;
     }
 
-    public function getStatus() {
+    public function getStatus()
+    {
         $queues = [];
         foreach ($this->queues as $queueid => $tasks) {
-            $queues[$queueid] = array_map(function ($task) { return $task[0]->getLoggingName(); }, $tasks);
+            $queues[$queueid] = array_map(function ($task) {
+                return $task[0]->getLoggingName();
+            }, $tasks);
         }
         return [
             'queues' => $queues,

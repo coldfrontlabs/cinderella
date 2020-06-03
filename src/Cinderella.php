@@ -21,6 +21,9 @@ use Cinderella\Task\TaskType;
 use Monolog\Logger;
 use Psr\Log\LogLevel;
 
+/**
+ * Main class for running the Cinderella daemon.
+ */
 class Cinderella
 {
     use CallableMaker;
@@ -31,22 +34,37 @@ class Cinderella
     private $queue;
     private $scheduler;
 
+    /**
+     * Constructor that initializes the member variables.
+     */
     public function __construct($config, $logger)
     {
         $this->config = $config + $this->defaultConfig();
         $this->config['endpoint'] = $config['endpoint'] + $this->defaultConfig()['endpoint'];
         $this->logger = $logger;
         $this->queue = new Queue($this->logger, $this);
+    }
+
+    /**
+     * Start server in the AMP loop.
+     */
+    public function start()
+    {
         Loop::run($this->callableFromInstanceMethod('server'));
     }
 
+    /**
+     * Run the server.
+     */
     private function server()
     {
+        // Setup the listen address for the webserver.
         $servers = [];
         foreach ($this->config['listen'] as $l) {
             $servers[] = Socket\listen($l);
         }
 
+        // Setup the request router.
         $router = new Router();
         foreach ($this->config['endpoint'] as $path => $endpoint) {
             $method = $endpoint['method'] ?? 'GET';
@@ -54,6 +72,7 @@ class Cinderella
             $this->logger->debug("Adding route $path:$method");
         }
 
+        // Start the amp webserver.
         $server = new Server($servers, $router, $this->logger);
 
         if ($result = $server->start()) {
@@ -61,18 +80,17 @@ class Cinderella
         } else {
             $this->logger->error("Couldn't start server");
         }
-        if (defined('SIGINT')) {
-            Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
-                Loop::cancel($watcherId);
-                yield $server->stop();
-            });
-        }
 
-        Loop::run($this->callableFromInstanceMethod('scheduler'));
+        // Start the scheduler.
+        Loop::defer($this->callableFromInstanceMethod('scheduler'));
     }
 
+    /**
+     * Setup the schedule runner.
+     */
     private function scheduler()
     {
+        $this->logger->debug('Starting scheduler');
         $this->scheduler = new Scheduler($this->logger, $this);
 
         if (isset($this->config['schedule'])) {
@@ -83,6 +101,9 @@ class Cinderella
         }
     }
 
+    /**
+     * Default configuration for Cinderella.
+     */
     public static function defaultConfig()
     {
         return [
@@ -104,6 +125,9 @@ class Cinderella
         ];
     }
 
+    /**
+     * Handle incomming requests to the AMPHP webserver.
+     */
     private function handle(Request $request)
     {
         $args = $request->getAttribute(Router::class);
@@ -117,12 +141,12 @@ class Cinderella
         if (!$config) {
             return new Response(Status::NOT_FOUND);
         }
-
-      //TODO: Add request queuing here.
-
         return $this->runRoutine($path, $request);
     }
 
+    /**
+     * Setup the task for the specified path and handle HTTP return codes.
+     */
     private function runRoutine($path, $request)
     {
         if (!isset($this->config['endpoint'][$path])) {
@@ -149,6 +173,9 @@ class Cinderella
         return new Response(Status::NOT_IMPLEMENTED);
     }
 
+    /**
+     * Execute the path task.
+     */
     public function run(Task $task, $path)
     {
         $result = $task->run();
@@ -164,11 +191,17 @@ class Cinderella
         return json_encode($result->toArray(), JSON_PRETTY_PRINT);
     }
 
+    /**
+     * Trigger the scheduler to refresh the schedules.
+     */
     public function refreshScheduler()
     {
         return $this->scheduler->asyncRefresh();
     }
 
+    /**
+     * Schedule task in the scheduler.
+     */
     public function scheduleTask($array)
     {
         $id = 'unnamed:' . $array['id'];
@@ -177,15 +210,22 @@ class Cinderella
         return $this->scheduler->scheduleTask($id, $time, $task);
     }
 
-    public function queueTask($queue, $task, $resolve) {
+    /**
+     * Queue tasks in the queueing system.
+     */
+    public function queueTask($queue, $task, $resolve)
+    {
         $queued_task = Task::factory($task, $this);
-        $resolve_task = NULL;
+        $resolve_task = null;
         if ($resolve) {
             $resolve_task = Task::factory($resolve, $this);
         }
         return $this->queue->queueTask($queue, $queued_task, $resolve_task);
     }
 
+    /**
+     * Get the status of the cinderella server.
+     */
     public function getStatus()
     {
         return [
@@ -196,10 +236,17 @@ class Cinderella
         ];
     }
 
-    public function addPromise($group, $id, $promise) {
+    /**
+     * Add pending promises to the running promises tracker.
+     */
+    public function addPromise($group, $id, $promise)
+    {
         $this->promises[$group][$id] = $promise;
     }
 
+    /**
+     * Track resolved promises.
+     */
     public function resolve()
     {
         $logger = $this->logger;
@@ -242,11 +289,17 @@ class Cinderella
         }
     }
 
+    /**
+     * Return access to Cinderella's logger.
+     */
     public function getLogger()
     {
         return $this->logger;
     }
 
+    /**
+     * Mark tasks as complete.
+     */
     public function complete($task, $group)
     {
         unset($this->pending[$group][$task]);

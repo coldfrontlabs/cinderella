@@ -142,9 +142,15 @@ The configuration file defines the entirety of Cinderella's runtime.
 
 ```podman run --rm -d -e CINDERELLA_SCHEDULE_URL=http://url.to/my/schedule coldfrontlabs/cinderella:latest```
 
+## Caveats
+
+Cinderella is still under development and a configuration validation is still missing.
+
 ## Built With
 
 * [PHP](http://php.net/) - Language
 * [AMP](https://amphp.org/) - HTTP Server and asynchronous process manager
 
+## Coding Standard
 
+PSR2

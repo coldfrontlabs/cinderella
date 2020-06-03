@@ -1,6 +1,7 @@
 <?php
 
 namespace Cinderella\Task;
+
 use Amp\Loop;
 
 class ScheduleRefresh extends Task

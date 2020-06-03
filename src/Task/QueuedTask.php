@@ -19,12 +19,13 @@ class QueuedTask extends Task
         );
     }
 
-    public function defaults() {
+    public function defaults()
+    {
         return [
-            'id' => NULL,
+            'id' => null,
             'queue' => 'default',
-            'task' => NULL,
-            'resolve' => NULL,
+            'task' => null,
+            'resolve' => null,
         ];
     }
 }

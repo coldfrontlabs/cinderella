@@ -17,7 +17,7 @@ class Task
     {
         $this->id = uniqid();
         $this->options = $options + $this->defaults();
-        $this->remoteId = $options['id'] ?? NULL;
+        $this->remoteId = $options['id'] ?? null;
         $this->type = $type;
         $this->cinderella = $cinderella;
     }
@@ -27,11 +27,13 @@ class Task
         return $this->id . '-' . $this->type;
     }
 
-    public function getRemoteId() {
+    public function getRemoteId()
+    {
         return $this->remoteId;
     }
 
-    public function getLoggingName() {
+    public function getLoggingName()
+    {
         if ($this->remoteId) {
             return $this->getId() . '+' . $this->getRemoteId();
         } else {

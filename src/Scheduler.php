@@ -55,7 +55,8 @@ class Scheduler
         $this->refresh($name);
     }
 
-    public function asyncRefresh() {
+    public function asyncRefresh()
+    {
         Loop::defer($this->callableFromInstanceMethod('refresh'));
     }
 
@@ -95,7 +96,8 @@ class Scheduler
     /**
      * Refresh the scheduled, if needed.
      */
-    public function scheduledRefresh() {
+    public function scheduledRefresh()
+    {
         static $lastRefresh = 0;
         $this->logger->debug("Scheduler: checking if schedules need refreshing.");
         if (empty($this->remoteSchedules)) {

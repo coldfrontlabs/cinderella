@@ -44,7 +44,8 @@ class TaskResult
         return $this->data;
     }
 
-    public function toArray() {
+    public function toArray()
+    {
         return [
             'id' => $this->getId(),
             'remoteid' => $this->getRemoteId(),

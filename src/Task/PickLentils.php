@@ -15,9 +15,10 @@ class PickLentils extends Task
     private $deferred;
     private $count;
 
-    public function defaults() {
+    public function defaults()
+    {
         return [
-            'id' => NULL,
+            'id' => null,
             'lentils' => 5,
         ];
     }
@@ -37,14 +38,17 @@ class PickLentils extends Task
         );
     }
 
-    private function pickLentils() {
+    private function pickLentils()
+    {
         if ($this->count < $this->options['lentils']) {
-            $this->cinderella->getLogger()->info($this->getLoggingName() . ": Picked {$this->count} of {$this->options['lentils']} lentils out of the fireplace");
+            $this->cinderella->getLogger()->info($this->getLoggingName()
+                . ": Picked {$this->count} of {$this->options['lentils']} lentils out of the fireplace");
             $this->count++;
             Loop::delay(1000, $this->callableFromInstanceMethod('pickLentils'));
             return;
         }
-        $this->cinderella->getLogger()->info($this->getLoggingName() . ": Finished picking {$this->options['lentils']} lentils out of the fireplace");
+        $this->cinderella->getLogger()->info($this->getLoggingName()
+            . ": Finished picking {$this->options['lentils']} lentils out of the fireplace");
         $this->deferred->resolve("Done");
     }
 }

@@ -7,9 +7,10 @@ use Cinderella\Cinderella;
 class TaskRunner extends Task
 {
 
-    public function defaults() {
+    public function defaults()
+    {
         return [
-            'id' => NULL,
+            'id' => null,
             'tasks' => [],
             'resolve' => null,
         ];
@@ -53,7 +54,7 @@ class TaskRunner extends Task
                     $time = microtime(true) - $start;
                     if ($error) {
                         $result = $error->getReasons();
-                        $logger->error("Task $id ($time seconds): an error occured:" . print_r($result, TRUE));
+                        $logger->error("Task $id ($time seconds): an error occured:" . print_r($result, true));
                     } else {
                         $logger->info("Task $id ($time seconds): Successfully ran all tasks");
                     }

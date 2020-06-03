@@ -37,3 +37,4 @@ Loop::setErrorHandler(function (\Throwable $e) use ($logger) {
 });
 
 $server = new Cinderella($config, $logger);
+$server->start();

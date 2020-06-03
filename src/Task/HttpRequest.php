@@ -9,14 +9,15 @@ use Cinderella\Cinderella;
 class HttpRequest extends Task
 {
 
-    public function defaults() {
+    public function defaults()
+    {
         return [
-            'body' => NULL,
+            'body' => null,
             'headers' => [],
-            'id' => NULL,
+            'id' => null,
             'method' => 'GET',
             'timeout' => 15,
-            'url' => NULL,
+            'url' => null,
         ];
     }
 
@@ -35,7 +36,18 @@ class HttpRequest extends Task
         $timeout = $this->options['timeout'];
         $url = $this->options['url'];
 
-        $promise = \Amp\call(function () use ($client, $url, $method, $body, $headers, $id, $remoteid, $logger, $timeout, $starttime) {
+        $promise = \Amp\call(function () use (
+            $body,
+            $client,
+            $headers,
+            $id,
+            $logger,
+            $method,
+            $remoteid,
+            $starttime,
+            $timeout,
+            $url
+        ) {
             $request = new Request($url, $method);
             if (isset($body)) {
                 if (is_array($body)) {
