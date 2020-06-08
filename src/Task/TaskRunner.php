@@ -63,7 +63,6 @@ class TaskRunner extends Task
                         'body' => [
                             'resolve' => [
                                 'results' => $result[1],
-                                'exceptions' => $result[0],
                                 'time' => $time,
                             ],
                         ],

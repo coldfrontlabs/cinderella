@@ -233,6 +233,7 @@ class Cinderella
             'pending' => array_map('array_keys', $this->pending),
             'schedule' => $this->scheduler->getStatus(),
             'queue' => $this->queue->getStatus(),
+            'loop' => Loop::getInfo(),
         ];
     }
 
@@ -274,10 +275,6 @@ class Cinderella
             if (empty($this->promises)) {
                 unset($this->promises[$group]);
             }
-        }
-
-        if (!empty($this->promises)) {
-            Loop::defer($this->callableFromInstanceMethod('resolve'));
         }
     }
 

@@ -2,17 +2,24 @@
 
 namespace Cinderella\Task;
 
+use Amp\CallableMaker;
+use Amp\Deferred;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
+use Amp\Loop;
 use Cinderella\Cinderella;
+
 
 class HttpRequest extends Task
 {
+    use CallableMaker;
+    private $deferred;
+    private $timing;
 
     public function defaults()
     {
         return [
-            'body' => null,
+            'body' => [],
             'headers' => [],
             'id' => null,
             'method' => 'GET',
@@ -21,97 +28,83 @@ class HttpRequest extends Task
         ];
     }
 
-    public function run($options = []): TaskResult
+    public function run(): TaskResult
     {
-        $starttime = microtime(true);
+        $this->timing = [
+            'start' => microtime(true),
+        ];
+
+        $this->deferred = new Deferred();
+        Loop::defer($this->callableFromInstanceMethod('request'));
+        $this->cinderella->getLogger()->info("{$this->getLoggingName()}: Deffered sending HTTP Request to {$this->options['url']}");
+        return new TaskResult(
+            $this->getId(),
+            $this->getRemoteId(),
+            "",
+            $this->deferred->promise()
+        );
+    }
+
+    private function request() {
+        $request = new Request( $this->options['url'], $this->options['method']);
+        if (isset($this->options['body']) and !empty($this->options['body'])) {
+            $body = $this->options['body'];
+            if (is_array($body)) {
+                $body = json_encode($body);
+            }
+            $request->setHeader('Content-type', 'application/json');
+            $request->setBody($body);
+        }
+
+        foreach ($this->options['headers'] as $header => $value) {
+            $request->setHeader($header, $value);
+        }
+
+        $timeout = $this->options['timeout'];
+        $request->setInactivityTimeout($timeout * 1000);
+        $request->setTransferTimeout($timeout * 1000);
+        $request->setTcpConnectTimeout($timeout * 1000);
+        $request->setTlsHandshakeTimeout($timeout * 1000);
         $client = HttpClientBuilder::buildDefault();
 
-        $this->options = array_merge_recursive($this->options, $options);
-        $body = $this->options['body'];
-        $headers = $this->options['headers'];
-        $id = $this->getId();
-        $logger = $this->cinderella->getLogger();
-        $method = $this->options['method'];
-        $remoteid = $this->options['id'];
-        $timeout = $this->options['timeout'];
-        $url = $this->options['url'];
+        $error = false;
 
-        $promise = \Amp\call(function () use (
-            $body,
-            $client,
-            $headers,
-            $id,
-            $logger,
-            $method,
-            $remoteid,
-            $starttime,
-            $timeout,
-            $url
-        ) {
-            $request = new Request($url, $method);
-            if (isset($body)) {
-                if (is_array($body)) {
-                    $body = json_encode($body);
-                }
-                $request->setHeader('Content-type', 'application/json');
-                $request->setBody($body);
+        try {
+            $response = yield $client->request($request);
+            $this->cinderella->getLogger()->debug("{$this->getLoggingName()}: Made HTTP {$this->options['method']} request to {$this->options['url']}");
+            $body = yield $response->getBody()->buffer();
+            $this->cinderella->getLogger()->debug("{$this->getLoggingName()}: Buffered body from {$this->options['method']} request to {$this->options['url']}");
+        }
+        catch (\Throwable $exception) {
+            $error = $exception->getMessage();
+        }
+        $endtime = microtime(true);
+        $timing['end'] = $endtime;
+        $timing['duration'] = $endtime - $timing['start'];
+
+        $ret = [
+            'id' => $this->getId(),
+            'remoteid' => $this->options['id'],
+            'url' => $this->options['url'],
+            'method' => $this->options['method'],
+            'time' => $timing,
+        ];
+
+        if ($error) {
+            $ret['status'] = 'error';
+            $ret['reason'] = $error;
+            $this->cinderella->getLogger()->info("{$this->getLoggingName()}: An error occured: $error");
+        } else {
+            $this->cinderella->getLogger()->info("{$this->getLoggingName()}: Successful call to {$this->options['url']}: "
+            . $response->getStatus() . '-' . $response->getReason());
+            $ret['status'] = $response->getStatus();
+            $ret['reason'] = $response->getReason();
+            if ($json = json_decode($body)) {
+                $ret['body'] = $body;
+            } else {
+              $ret['body'] = base64_encode($body);
             }
-
-            foreach ($headers as $header => $value) {
-                $request->setHeader($header, $value);
-            }
-
-            $request->setInactivityTimeout($timeout * 1000);
-            $timing = [
-                'start' => $starttime,
-            ];
-
-            try {
-                $response = yield $client->request($request);
-                $body = yield $response->getBody()->buffer();
-
-                $endtime = microtime(true);
-                $timing['end'] = $endtime;
-                $timing['duration'] = $endtime - $timing['start'];
-                return [
-                    'id' => $id,
-                    'remoteid' => $remoteid,
-                    'url' => $url,
-                    'method' => $method,
-                    'status' => $response->getStatus(),
-                    'reason' => $response->getReason(),
-                    'body' => $body,
-                    'time' => $timing,
-                ];
-            } catch (\Throwable $exception) {
-                $endtime = microtime(true);
-                $timing['end'] = $endtime;
-                $timing['duration'] = $endtime - $timing['start'];
-                return [
-                    'id' => $id,
-                    'remoteid' => $remoteid,
-                    'url' => $url,
-                    'method' => $method,
-                    'status' => 'error',
-                    'reason' => $exception->getMessage(),
-                    'time' => $timing,
-                ];
-            }
-        });
-
-        $promise->onResolve(
-            function ($error = null, $result = null) use ($id, $starttime, $url, $logger) {
-                $time = microtime(true) - $starttime;
-                if ($error) {
-                    $logger->error("Task $id ($time seconds): an error occured: " . $error->getMessage());
-                } else {
-                    $logger->info("Task $id ($time seconds): Successful call to $url: "
-                        . $result['status'] . '-' . $result['reason']);
-                }
-                return $result;
-            }
-        );
-        $message = "Task $id: Deffered sending HTTP Request to $url";
-        return new TaskResult($id, $this->remoteId, $message, $promise, []);
+        }
+        $this->deferred->resolve($ret);
     }
 }
