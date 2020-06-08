@@ -9,7 +9,6 @@ use Amp\Http\Client\Request;
 use Amp\Loop;
 use Cinderella\Cinderella;
 
-
 class HttpRequest extends Task
 {
     use CallableMaker;
@@ -36,7 +35,12 @@ class HttpRequest extends Task
 
         $this->deferred = new Deferred();
         Loop::defer($this->callableFromInstanceMethod('request'));
-        $this->cinderella->getLogger()->info("{$this->getLoggingName()}: Deffered sending HTTP Request to {$this->options['url']}");
+        $this
+            ->cinderella
+            ->getLogger()
+            ->info(
+                "{$this->getLoggingName()}: Deffered sending HTTP Request to {$this->options['url']}"
+            );
         return new TaskResult(
             $this->getId(),
             $this->getRemoteId(),
@@ -45,8 +49,9 @@ class HttpRequest extends Task
         );
     }
 
-    private function request() {
-        $request = new Request( $this->options['url'], $this->options['method']);
+    private function request()
+    {
+        $request = new Request($this->options['url'], $this->options['method']);
         if (isset($this->options['body']) and !empty($this->options['body'])) {
             $body = $this->options['body'];
             if (is_array($body)) {
@@ -71,11 +76,21 @@ class HttpRequest extends Task
 
         try {
             $response = yield $client->request($request);
-            $this->cinderella->getLogger()->debug("{$this->getLoggingName()}: Made HTTP {$this->options['method']} request to {$this->options['url']}");
+            $this
+                ->cinderella
+                ->getLogger()
+                ->debug(
+                    "{$this->getLoggingName()}: Made HTTP {$this->options['method']} request to {$this->options['url']}"
+                );
             $body = yield $response->getBody()->buffer();
-            $this->cinderella->getLogger()->debug("{$this->getLoggingName()}: Buffered body from {$this->options['method']} request to {$this->options['url']}");
-        }
-        catch (\Throwable $exception) {
+            $this
+                ->cinderella
+                ->getLogger()
+                ->debug(
+                    "{$this->getLoggingName()}:"
+                    . "Buffered body from {$this->options['method']} request to {$this->options['url']}"
+                );
+        } catch (\Throwable $exception) {
             $error = $exception->getMessage();
         }
         $endtime = microtime(true);
@@ -95,14 +110,21 @@ class HttpRequest extends Task
             $ret['reason'] = $error;
             $this->cinderella->getLogger()->info("{$this->getLoggingName()}: An error occured: $error");
         } else {
-            $this->cinderella->getLogger()->info("{$this->getLoggingName()}: Successful call to {$this->options['url']}: "
-            . $response->getStatus() . '-' . $response->getReason());
+            $this
+                ->cinderella
+                ->getLogger()
+                ->info(
+                    "{$this->getLoggingName()}: Successful call to {$this->options['url']}: "
+                    . $response->getStatus()
+                    . '-'
+                    . $response->getReason()
+                );
             $ret['status'] = $response->getStatus();
             $ret['reason'] = $response->getReason();
             if ($json = json_decode($body)) {
                 $ret['body'] = $body;
             } else {
-              $ret['body'] = base64_encode($body);
+                $ret['body'] = base64_encode($body);
             }
         }
         $this->deferred->resolve($ret);
