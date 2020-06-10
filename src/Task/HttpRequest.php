@@ -23,6 +23,7 @@ class HttpRequest extends Task
             'id' => null,
             'method' => 'GET',
             'timeout' => 15,
+            'maxsize' => 10 * 1024 * 1024,
             'url' => null,
         ];
     }
@@ -63,6 +64,10 @@ class HttpRequest extends Task
 
         foreach ($this->options['headers'] as $header => $value) {
             $request->setHeader($header, $value);
+        }
+
+        if (is_numeric($this->options['maxsize'])) {
+            $request->setBodySizeLimit((int)$this->options['maxsize']);
         }
 
         $timeout = $this->options['timeout'];
