@@ -213,14 +213,14 @@ class Cinderella
     /**
      * Queue tasks in the queueing system.
      */
-    public function queueTask($queue, $task, $resolve)
+    public function queueTask($queueid, $task, $resolve)
     {
         $queued_task = Task::factory($task, $this);
         $resolve_task = null;
         if ($resolve) {
             $resolve_task = Task::factory($resolve, $this);
         }
-        return $this->queue->queueTask($queue, $queued_task, $resolve_task);
+        return $this->queue->queueTask($queueid, $queued_task, $resolve_task);
     }
 
     /**

@@ -20,6 +20,12 @@ class Task
         $this->remoteId = $options['id'] ?? null;
         $this->type = $type;
         $this->cinderella = $cinderella;
+        $this
+        ->cinderella
+        ->getLogger()
+        ->debug(
+            "{$this->getLoggingName()}: Creating task"
+        );
     }
 
     public function getId()

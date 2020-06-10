@@ -99,15 +99,15 @@ class HttpRequest extends Task
             $error = $exception->getMessage();
         }
         $endtime = microtime(true);
-        $timing['end'] = $endtime;
-        $timing['duration'] = $endtime - $timing['start'];
+        $this->timing['end'] = $endtime;
+        $this->timing['duration'] = $endtime - $this->timing['start'];
 
         $ret = [
             'id' => $this->getId(),
             'remoteid' => $this->options['id'],
             'url' => $this->options['url'],
             'method' => $this->options['method'],
-            'time' => $timing,
+            'time' => $this->timing,
         ];
 
         if ($error) {
