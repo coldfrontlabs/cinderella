@@ -8,6 +8,7 @@
             "email": "dpascoed@coldfrontlabs.ca"
         }
     ],
+    "license": "MIT",
     "require": {
         "amphp/http-server-router": "^1.0",
         "symfony/yaml": "^4.2",
