@@ -50,6 +50,10 @@ class HttpRequest extends Task
         );
     }
 
+    public function getLoggingName() {
+        return parent::getLoggingName() . ':' . $this->options['method'] . '-' . $this->options['url'];
+    }
+
     private function request()
     {
         $request = new Request($this->options['url'], $this->options['method']);
