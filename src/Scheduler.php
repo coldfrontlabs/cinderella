@@ -74,11 +74,15 @@ class Scheduler
         $this->logger->info("Scheduler: refreshing $name");
         $schedule = file_get_contents($this->remoteSchedules[$name]['url']);
         if (!$schedule) {
+            $this->logger->error("Failed to load schedule: Couldn't reach the schedule URL");
+            $this->remoteSchedules[$name]['refresh'] = 10;
             return;
         }
         $schedule = json_decode($schedule, true);
 
         if (!$schedule) {
+            $this->logger->error("Failed to load schedule: Invalid JSON");
+            $this->remoteSchedules[$name]['refresh'] = 10;
             return;
         }
 
