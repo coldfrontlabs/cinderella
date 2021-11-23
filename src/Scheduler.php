@@ -76,6 +76,7 @@ class Scheduler
         if (!$schedule) {
             $this->logger->error("Failed to load schedule: Couldn't reach the schedule URL");
             $this->remoteSchedules[$name]['refresh'] = 10;
+            Loop::delay(10000, $this->callableFromInstanceMethod('scheduledRefresh'));
             return;
         }
         $schedule = json_decode($schedule, true);
@@ -83,6 +84,7 @@ class Scheduler
         if (!$schedule) {
             $this->logger->error("Failed to load schedule: Invalid JSON");
             $this->remoteSchedules[$name]['refresh'] = 10;
+            Loop::delay(10000, $this->callableFromInstanceMethod('scheduledRefresh'));
             return;
         }
 
