@@ -2,7 +2,6 @@
 
 namespace Cinderella\Task;
 
-use Amp\CallableMaker;
 use Amp\Deferred;
 use Amp\Loop;
 
@@ -11,7 +10,6 @@ use Amp\Loop;
  */
 class PickLentils extends Task
 {
-    use CallableMaker;
     private $deferred;
     private $count;
 
@@ -29,7 +27,7 @@ class PickLentils extends Task
         $this->cinderella->getLogger()->info($message);
         $this->deferred = new Deferred();
         $this->count = 1;
-        Loop::delay(1000, $this->callableFromInstanceMethod('pickLentils'));
+        Loop::delay(1000, \Closure::fromCallable([$this, 'pickLentils']));
         return new TaskResult(
             $this->getId(),
             $this->getRemoteId(),
@@ -44,7 +42,7 @@ class PickLentils extends Task
             $this->cinderella->getLogger()->info($this->getLoggingName()
                 . ": Picked {$this->count} of {$this->options['lentils']} lentils out of the fireplace");
             $this->count++;
-            Loop::delay(1000, $this->callableFromInstanceMethod('pickLentils'));
+            Loop::delay(1000, \Closure::fromCallable([$this, 'pickLentils']));
             return;
         }
         $this->cinderella->getLogger()->info($this->getLoggingName()

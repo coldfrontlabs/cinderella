@@ -2,8 +2,6 @@
 
 namespace Cinderella\Task;
 
-use Cinderella\Cinderella;
-
 class TaskRunner extends Task
 {
 

@@ -2,10 +2,6 @@
 
 namespace Cinderella\Task;
 
-use Amp\Http\Client\HttpClientBuilder;
-use Amp\Http\Client\Request;
-use Cinderella\Cinderella;
-
 class QueuedTask extends Task
 {
 

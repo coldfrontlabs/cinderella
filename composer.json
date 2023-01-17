@@ -10,11 +10,11 @@
     ],
     "license": "MIT",
     "require": {
-        "amphp/http-server-router": "^1.0",
-        "symfony/yaml": "^4.2",
-        "amphp/log": "^1.0",
-        "amphp/process": "^1.1",
-        "amphp/http-client": "^4.3"
+        "amphp/http-server-router": "^1",
+        "symfony/yaml": "^4",
+        "amphp/log": "^1",
+        "amphp/process": "^1",
+        "amphp/http-client": "^4"
     },
     "autoload": {
         "psr-4": {"Cinderella\\": "src/"}

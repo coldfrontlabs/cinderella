@@ -2,15 +2,11 @@
 
 namespace Cinderella;
 
-use Amp\CallableMaker;
 use Amp\Loop;
 use Cinderella\Task\Task;
-use Cinderella\Task\TaskType;
 
 class Queue
 {
-    use CallableMaker;
-
     public const IDLE = 'idle';
     public const RUNNING = 'running';
 
@@ -18,6 +14,7 @@ class Queue
     protected $status;
     protected $logger;
     protected $cinderella;
+    protected $promises;
 
   /**
    * Queue module's contructor.
@@ -42,7 +39,7 @@ class Queue
             "Queue: Queuing task $name in queue $queueid ({$this->status[$queueid]}: "
             . sizeof($this->queues[$queueid]) . " waiting tasks)"
         );
-        Loop::defer($this->callableFromInstanceMethod('processQueue'));
+        Loop::defer(\Closure::fromCallable([$this, 'processQueue']));
     }
 
     public function processQueue()
@@ -60,7 +57,7 @@ class Queue
                     $this->logger->notice('Queue: Ran ' . $task->getLoggingName() . ': ' . $result->getMessage());
                     $promise = $result->getPromise();
                     $this->promises[$queueid][$task->getLoggingName()] = $promise;
-                    $callback = $this->callableFromInstanceMethod('resolveQueueTask');
+                    $callback = \Closure::fromCallable([$this, 'resolveQueueTask']);
                     if ($promise) {
                         $this->status[$queueid] = Queue::RUNNING;
                         $promise->onResolve(function () use ($queueid, $callback, $resolve) {
@@ -84,7 +81,7 @@ class Queue
             $promise = $result->getPromise();
             $name = $resolve->getLoggingName();
             $resolvequeue = 'resolve-' . $queueid;
-            $callback = $this->callableFromInstanceMethod('resolveResolveTask');
+            $callback = \Closure::fromCallable([$this, 'resolveResolveTask']);
             if ($promise) {
                 $this->promises[$resolvequeue][$name] = $promise;
                 $promise->onResolve(function () use ($callback, $name, $resolvequeue) {
@@ -92,7 +89,7 @@ class Queue
                 });
             }
         }
-        Loop::defer($this->callableFromInstanceMethod('processQueue'));
+        Loop::defer(\Closure::fromCallable([$this, 'processQueue']));
     }
 
     private function resolveResolveTask($queueid, $name)

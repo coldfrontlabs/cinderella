@@ -2,16 +2,13 @@
 
 namespace Cinderella\Task;
 
-use Amp\CallableMaker;
 use Amp\Deferred;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use Amp\Loop;
-use Cinderella\Cinderella;
 
 class HttpRequest extends Task
 {
-    use CallableMaker;
     private $deferred;
     private $timing;
 
@@ -35,7 +32,7 @@ class HttpRequest extends Task
         ];
 
         $this->deferred = new Deferred();
-        Loop::defer($this->callableFromInstanceMethod('request'));
+        Loop::defer(\Closure::fromCallable([$this, 'request']));
         $this
             ->cinderella
             ->getLogger()

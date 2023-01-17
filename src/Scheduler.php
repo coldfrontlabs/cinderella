@@ -2,17 +2,13 @@
 
 namespace Cinderella;
 
-use Amp\CallableMaker;
 use Amp\Loop;
 use Cinderella\Task\Task;
-use Cinderella\Task\TaskType;
 
 class Scheduler
 {
-    use CallableMaker;
-
     protected $schedule;
-    protected $scheduledTasksIds;
+    protected $scheduledTaskIds;
     protected $remoteSchedules;
     protected $logger;
     protected $cinderella;
@@ -24,10 +20,10 @@ class Scheduler
     {
         $this->schedule = [];
         $this->remoteSchedules = [];
-        $this->scheduledTasksIds = [];
+        $this->scheduledTaskIds = [];
         $this->logger = $logger;
         $this->cinderella = $cinderella;
-        Loop::repeat(900 * 1000, $this->callableFromInstanceMethod('scheduledRefresh'));
+        Loop::repeat(900 * 1000, \Closure::fromCallable([$this, 'scheduledRefresh']));
     }
 
     /**
@@ -57,7 +53,7 @@ class Scheduler
 
     public function asyncRefresh()
     {
-        Loop::defer($this->callableFromInstanceMethod('refresh'));
+        Loop::defer(\Closure::fromCallable([$this, 'refresh']));
     }
 
   /**
@@ -76,7 +72,7 @@ class Scheduler
         if (!$schedule) {
             $this->logger->error("Failed to load schedule: Couldn't reach the schedule URL");
             $this->remoteSchedules[$name]['refresh'] = 10;
-            Loop::delay(10000, $this->callableFromInstanceMethod('scheduledRefresh'));
+            Loop::delay(10000, \Closure::fromCallable([$this, 'scheduledRefresh']));
             return;
         }
         $schedule = json_decode($schedule, true);
@@ -84,7 +80,7 @@ class Scheduler
         if (!$schedule) {
             $this->logger->error("Failed to load schedule: Invalid JSON");
             $this->remoteSchedules[$name]['refresh'] = 10;
-            Loop::delay(10000, $this->callableFromInstanceMethod('scheduledRefresh'));
+            Loop::delay(10000, \Closure::fromCallable([$this, 'scheduledRefresh']));
             return;
         }
 
@@ -204,7 +200,7 @@ class Scheduler
                 Loop::cancel($nextCheckInId);
                 $this->logger->debug("Scheduler: Cancelling check-in at $nextRunIn");
             }
-            $nextCheckInId = Loop::delay($nextRunIn * 1000, $this->callableFromInstanceMethod('tick'));
+            $nextCheckInId = Loop::delay($nextRunIn * 1000, \Closure::fromCallable([$this, 'tick']));
         } else {
             $this->logger->debug(
                 "Scheduler: Wanted to schedule a check in in $nextRunIn seconds, but the next it scheduled for "

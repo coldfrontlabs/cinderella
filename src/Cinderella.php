@@ -2,37 +2,29 @@
 
 namespace Cinderella;
 
-use Amp\CallableMaker;
-use Amp\Http\Client\HttpException;
 use Amp\Http\Server\Request;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Response;
 use Amp\Http\Server\Router;
-use Amp\Http\Server\Server;
+use Amp\Http\Server\HttpServer;
 use Amp\Http\Status;
-use Amp\Log\ConsoleFormatter;
-use Amp\Log\StreamHandler;
 use Amp\Loop;
-use Amp\Process\Process;
 use Amp\Socket;
-use Cinderella\Task\QueuedTask;
 use Cinderella\Task\Task;
 use Cinderella\Task\TaskType;
-use Monolog\Logger;
-use Psr\Log\LogLevel;
 
 /**
  * Main class for running the Cinderella daemon.
  */
 class Cinderella
 {
-    use CallableMaker;
 
     private $config;
     private $pending = [];
     private $promises = [];
     private $queue;
     private $scheduler;
+    private $logger;
 
     /**
      * Constructor that initializes the member variables.
@@ -50,7 +42,7 @@ class Cinderella
      */
     public function start()
     {
-        Loop::run($this->callableFromInstanceMethod('server'));
+        Loop::run(\Closure::fromCallable([$this, 'server']));
     }
 
     /**
@@ -61,19 +53,19 @@ class Cinderella
         // Setup the listen address for the webserver.
         $servers = [];
         foreach ($this->config['listen'] as $l) {
-            $servers[] = Socket\listen($l);
+            $servers[] = Socket\Server::listen($l);
         }
 
         // Setup the request router.
         $router = new Router();
         foreach ($this->config['endpoint'] as $path => $endpoint) {
             $method = $endpoint['method'] ?? 'GET';
-            $router->addRoute($method, $path, new CallableRequestHandler($this->callableFromInstanceMethod('handle')));
+            $router->addRoute($method, $path, new CallableRequestHandler(\Closure::fromCallable([$this, 'handle'])));
             $this->logger->debug("Adding route $path:$method");
         }
 
         // Start the amp webserver.
-        $server = new Server($servers, $router, $this->logger);
+        $server = new HttpServer($servers, $router, $this->logger);
 
         if ($result = $server->start()) {
             yield $result;
@@ -82,7 +74,7 @@ class Cinderella
         }
 
         // Start the scheduler.
-        Loop::defer($this->callableFromInstanceMethod('scheduler'));
+        Loop::defer(\Closure::fromCallable([$this, 'scheduler']));
     }
 
     /**
@@ -183,7 +175,7 @@ class Cinderella
             $this->promises[$path][$task->getId()] = $promise;
         }
         try {
-            Loop::defer($this->callableFromInstanceMethod('resolve'));
+            Loop::defer(\Closure::fromCallable([$this, 'resolve']));
         } finally {
         }
 
@@ -197,17 +189,6 @@ class Cinderella
     public function refreshScheduler()
     {
         return $this->scheduler->asyncRefresh();
-    }
-
-    /**
-     * Schedule task in the scheduler.
-     */
-    public function scheduleTask($array)
-    {
-        $id = 'unnamed:' . $array['id'];
-        $tasktime = $task['time'];
-        $task = Task::factory($task['task'], $this);
-        return $this->scheduler->scheduleTask($id, $time, $task);
     }
 
     /**
