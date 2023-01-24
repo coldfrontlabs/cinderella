@@ -125,12 +125,13 @@ class Scheduler
     public function scheduleTask($id, $time, Task $task)
     {
         $diff = $time - time();
-        $this->logger->info("Scheduler: scheduling $id at $time (in $diff seconds");
+        $date = date('Y-m-d H:i:s', $time);
+        $this->logger->info("Scheduler: scheduling $id at $date ($time) - in $diff seconds");
 
       // Reschedule duplicate tasks.
         if (isset($this->scheduledTaskIds[$id])) {
             $this->logger->info(
-                "Scheduler: Rescheduling task $id at $time"
+                "Scheduler: Rescheduling task $id at $date ($time)"
             );
             $oldtime = $this->scheduledTaskIds[$id];
             unset($this->schedule[$oldtime][$id]);
@@ -166,7 +167,8 @@ class Scheduler
         foreach (array_keys($this->schedule) as $time) {
             if ($now >= $time) {
                 $diff = $now - $time;
-                $this->logger->info("Scheduler: Running tasks scheduled for $time at $now ($diff seconds late)");
+                $date = date('Y-m-d H:i:s', $time);
+                $this->logger->info("Scheduler: Running tasks scheduled for $date ($time) at $now ($diff seconds late)");
                 $this->runTasks($time);
                 $nextCheckIn = null;
                 $nextCheckInId = null;
@@ -192,8 +194,9 @@ class Scheduler
         }
 
         if (!isset($nextCheckInId) or !isset($nextCheckIn) or $nextCheckIn > $nextRunIn + $now) {
+            $date = date('Y-m-d H:i:s', $times[0]);
             $this->logger->debug(
-                "Scheduler: Next scheduled event is at $times[0] - checking back in $nextRunIn seconds"
+                "Scheduler: Next scheduled event is at $date ($times[0]) - checking back in $nextRunIn seconds"
             );
             $nextCheckIn = (int)$now + $nextRunIn;
             if ($nextCheckInId) {

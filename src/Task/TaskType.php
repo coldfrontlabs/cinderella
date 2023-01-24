@@ -12,4 +12,5 @@ class TaskType
     public const SCHEDULE_REFRESH = 'schedule_refresh';
     public const PICK_LENTILS = 'pick_lentils';
     public const TRY_ON_SLIPPER = 'try_on_slipper';
+    public const SCHEDULE = 'schedule';
 }

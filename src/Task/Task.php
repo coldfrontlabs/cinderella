@@ -94,6 +94,9 @@ class Task
             case TaskType::TRY_ON_SLIPPER:
                 return new TryOnSlipper(TaskType::TRY_ON_SLIPPER, $task, $cinderella);
 
+            case TaskType::SCHEDULE:
+                return new Schedule(TaskType::SCHEDULE, $task, $cinderella);
+
             case TaskType::NONE:
             default:
                 return new Task(TaskType::NONE, $task, $cinderella);

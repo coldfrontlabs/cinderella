@@ -192,6 +192,13 @@ class Cinderella
     }
 
     /**
+     * Schedule a task at a future time.
+     */
+    public function scheduleTask($id, $time, Task $task) {
+        return $this->scheduler->scheduleTask($id, $time, $task);
+    }
+
+    /**
      * Queue tasks in the queueing system.
      */
     public function queueTask($queueid, $task, $resolve)
